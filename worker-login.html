@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>تسجيل دخول العمال — My Decor Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <style>
+        :root {
+            --primary: #0f766e;
+            --accent: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --muted: #6b7280;
+            --border-color: rgba(2,6,23,.06);
+            --text-primary: #071331;
+            --error: #ef4444;
+        }
+        body {
+            margin: 0;
+            font-family: 'Tajawal', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 380px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .auth-container {
+            background-color: var(--card);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            animation: fadeInFromBottom 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
+            opacity: 0;
+        }
+        .app-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .app-brand .logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background: linear-gradient(135deg,var(--primary),#0b8f81);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            animation: logo-pop-in 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform: scale(0.5);
+        }
+        .app-brand h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+        }
+        .form-group {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .form-group i {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            color: var(--muted);
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            text-align: right;
+            background: var(--bg);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: 'Tajawal', sans-serif;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background-color 0.2s ease;
+        }
+        button:hover {
+            background-color: #0d9488;
+        }
+        button:disabled {
+            background-color: var(--muted);
+            cursor: not-allowed;
+        }
+        #toastContainer {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 120;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background-color: var(--error);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-weight: 700;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: fadeInFromBottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: all;
+        }
+        @keyframes fadeInFromBottom {
+            from { opacity: 0; transform: translateY(25px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes logo-pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="authContainer" class="auth-container">
+            <div class="app-brand">
+                <div class="logo"><i class="fas fa-users"></i></div>
+                <h1>بوابة العمال</h1>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+                </div>
+                <div class="form-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="كلمة المرور" required>
+                </div>
+                <button id="btnLogin" type="submit">تسجيل الدخول</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC52e_whkQh-vwgdwuuzl4wMpVxILXGkSQ",
+            authDomain: "shoes-manager-pro.firebaseapp.com",
+            projectId: "shoes-manager-pro",
+            storageBucket: "shoes-manager-pro.firebasestorage.app",
+            messagingSenderId: "951149272003",
+            appId: "1:951149272003:web:85d665da99166298047b76"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const btnLogin = document.getElementById('btnLogin');
+
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.5s forwards';
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 4000);
+        }
+
+        function setLoading(isLoading) {
+            btnLogin.disabled = isLoading;
+            btnLogin.textContent = isLoading ? 'جاري التحقق...' : 'تسجيل الدخول';
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showToast('الرجاء إدخال البريد الإلكتروني وكلمة المرور.');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                // تم إزالة التحقق من صلاحية العامل، سيتم التوجيه مباشرة إلى لوحة التحكم
+                window.location.replace('index.html');
+            } catch (error) {
+                console.error("Login Error:", error.message);
+                showToast('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+                setLoading(false);
+            }
+        });
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+            } else {
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>
