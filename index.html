@@ -934,9 +934,7 @@ function getThemeColors() {
             case 'worker-details': content = getWorkerDetailsView(params.id); break;
             case 'settings':      content = getSettingsView(); break;
             case 'expenses':      content = getExpensesView(); break;
-            case 'debts_feature': content = getDebtsView(); break;
             case 'themes':        content = getThemesView(); break;
-            case 'backup_restore': content = getBackupRestoreView(true); break;
             case 'about':         content = getAboutView(); break;
             case 'purchases':     content = getPurchasesView(); break; // *** إضافة: واجهة سجل المشتريات ***
             default:              content = `<h3>View Not Found: ${viewName}</h3>`;
@@ -946,40 +944,6 @@ function getThemeColors() {
         
         if (viewName === 'settings') {
             document.getElementById('navigateToThemes')?.addEventListener('click', () => renderView('themes'));
-            document.getElementById('navigateToBackupRestore')?.addEventListener('click', () => renderView('backup_restore'));
-            const backupCardDot = document.getElementById('backupRestoreCardDot');
-            if (backupCardDot) {
-                backupCardDot.style.display = document.getElementById('settingsNotificationDot').style.display;
-            }
-        }
-        if (viewName === 'backup_restore') {
-            const user = auth.currentUser;
-            if (user) {
-                // *** تعديل: العامل يقرأ مباشرة من مستند المستخدم المسجل دخوله ***
-                firestore.collection('users').doc(user.uid).get().then(doc => {
-                    const infoEl = document.getElementById('lastBackupInfo');
-                    const restoreBtn = document.getElementById('restoreBtn');
-                    if (doc.exists && infoEl) {
-                        const backupData = doc.data().backup; // *** تعديل: قراءة النسخة الاحتياطية من داخل حقل backup
-                        const timestamp = backupData.backupTimestamp;
-                        const date = timestamp ? timestamp.toDate().toLocaleString('ar-DZ') : 'غير معروف';
-                        infoEl.textContent = `آخر نسخة احتياطية: ${date}`;
-                        if (restoreBtn) restoreBtn.disabled = false;
-
-                        const backupTime = timestamp ? timestamp.toDate().getTime() : 0;
-                        const lastSyncTime = parseInt(localStorage.getItem('lastBackupSyncTime_worker') || '0');
-                        const isFromAnotherDevice = backupData.lastUpdatedBy && backupData.lastUpdatedBy !== deviceIdentifier;
-                        if (backupTime > lastSyncTime && isFromAnotherDevice) {
-                            infoEl.innerHTML = `✨ تحديث جديد متوفر من جهاز آخر! <br><small>آخر نسخة احتياطية: ${date}</small>`;
-                            restoreBtn.style.animation = 'pulse-animation 2s infinite';
-                        }
-                    } else if (infoEl) {
-                        infoEl.textContent = 'لم يتم العثور على نسخة احتياطية في السحابة.';
-                    }
-                });
-            }
-            hideBackupNotification();
-            localStorage.setItem('lastBackupSyncTime_worker', Date.now());
         }
         if (viewName === 'themes') {
             mainContent.querySelectorAll('.theme-card').forEach(card => card.addEventListener('click', async (e) => {
@@ -1348,85 +1312,6 @@ function getThemeColors() {
     return { totalDue, totalPaid, presentDays, absentDays };
   }
 
-  function getExpensesView() {
-    return `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
-            <button onclick="renderView('home')" class="btn icon-btn" title="العودة للرئيسية"><i class="fas fa-arrow-right"></i></button>
-            <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">إدارة النفقات</h3>
-            <div style="display: flex; gap: 8px;">
-                <button data-action="add-expense" class="btn icon-btn" title="إضافة نفقة"><i class="fas fa-plus"></i></button>
-            </div>
-        </div>
-        <p style="text-align:center; color:var(--muted); padding: 20px;">
-            يمكنك من هنا إضافة نفقات جديدة للمشاريع. اضغط على زر الإضافة (+) للبدء.
-        </p>
-    `;
-  }
-
-  function getDebtsView() {
-    const debts = state.debts || [];
-    const totalDebts = debts.reduce((sum, debt) => sum + (debt.remaining || 0), 0);
-
-    const debtRows = debts.map(debt => {
-        const progress = debt.amount > 0 ? ((debt.amount - debt.remaining) / debt.amount) * 100 : 0;
-        return `
-            <tr style="cursor:default;">
-                <td>
-                    <div style="font-weight: 700;">${debt.person}</div>
-                    <div style="font-size: 12px; color: var(--muted);">${debt.notes || 'لا توجد ملاحظات'}</div>
-                </td>
-                <td class="amount-col negative">
-                    ${debt.remaining.toLocaleString()}&nbsp;د.ج
-                </td>
-                <td class="hide-on-mobile">
-                    <div style="width: 100%; background: var(--bg); border-radius: 4px; overflow: hidden;">
-                        <div style="width: ${progress}%; background: var(--primary); height: 8px;"></div>
-                    </div>
-                    <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">${Math.round(progress)}% مسدد</div>
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    const debtsTable = debts.length > 0 ? `
-        <div class="card" style="cursor:default; transform:none; padding: 8px; align-items: stretch;">
-            <table class="professional-table">
-                <thead>
-                    <tr>
-                        <th>الشخص</th>
-                        <th style="text-align: left;">المبلغ المتبقي</th>
-                        <th class="hide-on-mobile" style="width: 120px;">التقدم</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${debtRows}
-                </tbody>
-            </table>
-        </div>
-    ` : `
-        <div class="card" style="cursor:default; transform:none; padding: 40px 20px; align-items: center; text-align: center;">
-            <div style="font-size: 40px; color: var(--primary); margin-bottom: 16px;"><i class="fas fa-file-invoice-dollar"></i></div>
-            <h3 style="margin:0 0 8px;">لا توجد ديون مسجلة</h3>
-        </div>
-    `;
-
-    return `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
-            <button onclick="renderView('home')" class="btn icon-btn" title="العودة"><i class="fas fa-arrow-right"></i></button>
-            <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">سجل الديون</h3>
-        </div>
-
-        <div class="grid-cards" style="grid-template-columns: 1fr; margin-bottom: 20px;">
-            <div class="card" style="cursor:default; transform:none; text-align:right; align-items:flex-start; padding:12px; border-left: 4px solid #ef4444;">
-                <div style="font-size:13px; color:var(--muted);">إجمالي الديون المتبقية</div>
-                <div style="font-weight:800; font-size:20px; color:#ef4444;">${totalDebts.toLocaleString()} د.ج</div>
-            </div>
-        </div>
-
-        ${debtsTable}
-    `;
-  }
-  
   function getSettingsView() {
     return `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
@@ -1444,20 +1329,6 @@ function getThemeColors() {
                 </div>
                 <i class="fas fa-chevron-left" style="color: var(--muted); align-self: center;"></i>
             </div>
-        </div>
-
-        <div id="navigateToBackupRestore" class="card" style="align-items:flex-start; text-align:right; flex-direction: row; justify-content: space-between; margin-top: 12px;">
-            <div style="display:flex; align-items:center; gap: 12px;">
-                <div class="icon" style="width:48px; height:48px; background: linear-gradient(135deg,#3b82f6,#2563eb); font-size: 20px; margin-bottom: 0; position: relative;">
-                    <i class="fas fa-database"></i>
-                    <span class="notification-dot" id="backupRestoreCardDot" style="top: -2px; right: -2px;"></span>
-                </div>
-                <div>
-                    <div style="font-weight:700;">النسخ الاحتياطي والاستعادة</div>
-                    <div style="font-size:13px; color: var(--muted)">حفظ نسخة من بياناتك أو استعادتها</div>
-                </div>
-            </div>
-            <i class="fas fa-chevron-left" style="color: var(--muted); align-self: center;"></i>
         </div>
     `;
   }
@@ -1801,36 +1672,6 @@ function getThemeColors() {
       }
   }
 
-  function getBackupRestoreView(isReadOnly = false) {
-    const backupBtnHTML = isReadOnly ? '' : `
-        <div class="card" style="cursor:default; transform:none; padding: 20px; align-items: stretch; text-align: right; margin-bottom: 20px; border-top: 2px solid var(--primary);">
-            <h4 style="margin: 0 0 8px; font-size: 16px;">حفظ نسخة احتياطية في السحابة</h4>
-            <p style="color: var(--muted); line-height: 1.6; margin: 0 0 16px;">
-                حفظ جميع بياناتك بأمان في حسابك على Firebase. يمكنك استعادتها في أي وقت وعلى أي جهاز.
-            </p>
-            <button onclick="handleCloudBackup()" class="btn" style="background-color: #10b981; width: 100%;"><i class="fas fa-cloud-upload-alt" style="margin-left: 8px;"></i> حفظ البيانات الآن</button>
-        </div>`;
-
-    return `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
-            <button onclick="renderView('settings')" class="btn icon-btn" title="العودة للإعدادات"><i class="fas fa-arrow-right"></i></button>
-            <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">النسخ الاحتياطي والاستعادة</h3>
-        </div>
-        ${backupBtnHTML}
-
-        <div class="card" style="cursor:default; transform:none; padding: 20px; align-items: stretch; text-align: right; border-top: 2px solid #f59e0b;">
-            <h4 style="margin: 0 0 8px; font-size: 16px;">استعادة البيانات من السحابة</h4>
-            <p style="color: var(--muted); line-height: 1.6; margin: 0 0 16px;">
-                سيتم دمج آخر نسخة احتياطية محفوظة مع بياناتك الحالية.
-            </p>
-            <div id="lastBackupInfo" style="font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 12px; background: var(--bg); padding: 8px; border-radius: 6px;">
-                جاري البحث عن نسخة احتياطية...
-            </div>
-            <button id="restoreBtn" onclick="handleCloudRestore()" class="btn" style="background-color: #f59e0b; width: 100%;" ${isReadOnly ? 'disabled' : ''}><i class="fas fa-cloud-download-alt" style="margin-left: 8px;"></i> استعادة البيانات الآن</button>
-        </div>
-    `;
-  }
-
   // *** إضافة: نافذة منبثقة لإدخال PIN العامل ***
   document.body.insertAdjacentHTML('beforeend', `
     <div id="workerPinModal" class="modal-container modal-hidden">
@@ -1896,92 +1737,6 @@ function getThemeColors() {
       }
   });
 
-  async function handleCloudBackup() {
-    const user = auth.currentUser;
-    if (!user) {
-        showCustomToast('يجب أن تكون مسجلاً للدخول.', 'error');
-        return;
-    }
-
-    openConfirmModal('هل تريد حفظ نسخة احتياطية من بياناتك الحالية في السحابة؟', async () => {
-        closeConfirmModal();
-        showToast('جاري حفظ النسخة الاحتياطية...');
-        try {
-            const backupData = {
-                backupTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                lastUpdatedBy: deviceIdentifier
-            };
-            for (const table of db.tables) {
-                if (table.name !== 'app_settings') {
-                    let tableData = await table.toArray();
-                    const imageFieldsToExclude = {
-                        workers: 'imageUrl',
-                        suppliers: 'imageUrl',
-                        expenses: 'receiptUrl'
-                    };
-
-                    const fieldToExclude = imageFieldsToExclude[table.name];
-                    if (fieldToExclude) {
-                        tableData = tableData.map(item => {
-                            const { [fieldToExclude]: _, ...rest } = item;
-                            return rest;
-                        });
-                    }
-                    backupData[table.name] = tableData;
-                }
-            }
-
-            // *** تعديل: العامل يقوم بتحديث نسخة المستخدم الحالي الاحتياطية ***
-            await firestore.collection('users').doc(user.uid).set({ backup: backupData }, { merge: true });
-            showToast('تم حفظ النسخة الاحتياطية بنجاح.');
-            renderView('backup_restore');
-
-        } catch (error) {
-            console.error("Cloud backup failed:", error);
-            showCustomToast('فشل حفظ النسخة الاحتياطية.', 'error');
-        }
-    });
-  }
-
-  async function handleCloudRestore() {
-    const user = auth.currentUser;
-    if (!user) {
-        showCustomToast('يجب تسجيل الدخول لتنفيذ هذه العملية.', 'error');
-        return;
-    }
-
-    openConfirmModal('هل أنت متأكد من استعادة البيانات؟ سيتم دمج البيانات من السحابة مع بياناتك الحالية.', async () => {
-        closeConfirmModal();
-        showToast('جاري استعادة البيانات...');
-    try {
-            const userDoc = await firestore.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || !userDoc.data().backup) {
-                showCustomToast('لا توجد نسخة احتياطية لك في السحابة.', 'error');
-                return;
-            }
-            const backupData = userDoc.data().backup;
-
-            await db.transaction('rw', db.tables, async () => {
-                for (const table of db.tables) {
-                    if (backupData[table.name] && Array.isArray(backupData[table.name])) {
-                        await table.bulkPut(backupData[table.name]);
-                    }
-                }
-            });
-
-            showToast('تم استعادة البيانات بنجاح!');
-            hideBackupNotification();
-            localStorage.setItem('lastBackupSyncTime_worker', Date.now());
-
-            setTimeout(() => location.reload(), 1500);
-
-        } catch (error) {
-            console.error("Cloud restore failed:", error);
-            showCustomToast('فشل استعادة البيانات.', 'error');
-        }
-    });
-  }
-
   function getAboutView() {
     const appInfo = `
         <div class="card" style="cursor:default; transform:none; align-items:flex-start; text-align:right;">
@@ -2028,73 +1783,6 @@ function getThemeColors() {
     } else {
         renderView('home');
     }
-  }
-
-  function openExpenseModal(expenseId = null, prefill = {}) {
-      const expenseModal = document.getElementById('expenseModal');
-      const expenseForm = document.getElementById('expenseForm');
-      const expenseModalTitle = document.getElementById('expenseModalTitle');
-      const expenseIdInput = document.getElementById('expenseId');
-      const expenseDescriptionInput = document.getElementById('expenseDescription');
-      const expenseAmountInput = document.getElementById('expenseAmount');
-      const expenseDateInput = document.getElementById('expenseDate');
-      const expenseProjectInput = document.getElementById('expenseProjectName');
-
-      if (!expenseForm) return;
-
-      expenseForm.reset();
-      const projectDatalist = document.getElementById('project-list');
-      projectDatalist.innerHTML = state.projects.map(p => `<option value="${p.name}"></option>`).join('');
-
-      expenseModalTitle.textContent = 'إضافة نفقة جديدة';
-      expenseIdInput.value = '';
-      expenseDateInput.valueAsDate = new Date();
-      if (prefill.projectId) {
-          const project = state.projects.find(p => p.id === prefill.projectId);
-          if (project) expenseProjectInput.value = project.name;
-      }
-      
-      openModal('expenseModal');
-  }
-
-  function closeExpenseModal() {
-      closeModal('expenseModal');
-  }
-
-  async function handleExpenseFormSubmit(e) {
-      e.preventDefault();
-      const expenseDescriptionInput = document.getElementById('expenseDescription');
-      const expenseAmountInput = document.getElementById('expenseAmount');
-      const expenseDateInput = document.getElementById('expenseDate');
-      const expenseProjectNameInput = document.getElementById('expenseProjectName');
-
-      let projectId = null;
-      const projectName = expenseProjectNameInput.value.trim();
-
-      if (projectName) {
-          let project = state.projects.find(p => p.name.toLowerCase() === projectName.toLowerCase());
-          if (project) {
-              projectId = project.id;
-          } else {
-              projectId = await db.projects.add({ name: projectName, budget: 0, expenses: 0 });
-          }
-      }
-
-      const paymentStatus = document.querySelector('input[name="expensePaymentStatus"]:checked').value;
-      const expenseData = {
-          description: expenseDescriptionInput.value,
-          amount: parseFloat(expenseAmountInput.value) || 0,
-          date: expenseDateInput.value,
-          projectId: projectId,
-          paymentStatus: paymentStatus,
-          notes: document.getElementById('expenseNotes').value,
-      };
-
-      await db.expenses.add(expenseData);
-      
-      renderView('expenses');
-      closeExpenseModal();
-      showToast('تمت إضافة النفقة بنجاح.');
   }
 
   const confirmModal = document.getElementById('confirmModal');
@@ -2226,55 +1914,6 @@ function getThemeColors() {
       });
   });
 
-  document.body.insertAdjacentHTML('beforeend', ` 
-    <div id="expenseModal" class="modal-container modal-hidden">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="expenseModalTitle">إضافة نفقة جديدة</h3>
-                <button class="close-btn" data-action="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="expenseForm">
-                    <input type="hidden" id="expenseId">
-                    <div class="form-group">
-                        <label for="expenseDescription">وصف النفقة</label>
-                        <input type="text" id="expenseDescription" required placeholder="مثال: شراء دهانات">
-                    </div>
-                    <div class="form-group">
-                        <label for="expenseAmount">المبلغ (د.ج)</label>
-                        <input type="number" id="expenseAmount" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="expenseDate">التاريخ</label>
-                        <input type="date" id="expenseDate" required style="background: var(--card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; width: 100%;">
-                    </div>
-                    <div class="form-group">
-                        <label for="expenseProjectName">ربط بمشروع (اكتب للاختيار أو للإضافة)</label>
-                        <input type="text" id="expenseProjectName" list="project-list" placeholder="مثال: فيلا بودواو" style="background: var(--card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; width: 100%;">
-                        <datalist id="project-list"></datalist>
-                    </div>
-                    <div class="form-group">
-                        <label for="expenseNotes">ملاحظات (اختياري)</label>
-                        <textarea id="expenseNotes" rows="3" placeholder="أضف أي تفاصيل إضافية هنا..."></textarea>
-                    </div>
-                    <div class="form-group payment-status-group" style="background: var(--card); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
-                        <label style="margin-bottom: 10px; display: block;">حالة الدفع</label>
-                        <div style="display: flex; gap: 10px;">
-                            <label style="flex: 1; cursor: pointer;">
-                                <input type="radio" name="expensePaymentStatus" value="paid" checked style="margin-left: 5px;">مدفوع
-                            </label>
-                            <label style="flex: 1; cursor: pointer;">
-                                <input type="radio" name="expensePaymentStatus" value="unpaid" style="margin-left: 5px;">غير مدفوع
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-actions"><button type="submit" class="btn">حفظ</button></div>
-                </form>
-            </div>
-        </div>
-    </div>`);
-
   function initializeEventListeners() {
     themeToggleHeader.addEventListener('click', toggleTheme);
 
@@ -2301,15 +1940,6 @@ function getThemeColors() {
             return;
         }
 
-        const addExpenseBtn = target.closest('[data-action="add-expense"]');
-        if (addExpenseBtn && state.currentView.name === 'workers' && !target.closest('.purchase-delete-btn')) {
-            openWorkerModal();
-            return;
-        }
-        if (addExpenseBtn && !target.closest('.purchase-delete-btn')) {
-            openExpenseModal();
-            return;
-        }
         // Delegation: فتح تفاصيل السجل عند الضغط على عنصر السجل
         const purchaseItem = target.closest('[data-action="view-purchase-details"]');
         // *** إصلاح: التأكد من أن النقر لم يكن على زر الحذف قبل فتح التفاصيل ***
@@ -2326,7 +1956,6 @@ function getThemeColors() {
         }
     });
 
-    document.getElementById('expenseForm')?.addEventListener('submit', handleExpenseFormSubmit);
     // Purchase form listener (prevent default navigation/reload)
     const purchaseForm = document.getElementById('purchaseForm');
     if (purchaseForm) {
@@ -2671,20 +2300,6 @@ function getThemeColors() {
     // Attendance Confirmation Modal Listeners
     document.getElementById('confirmPresentBtn').addEventListener('click', () => saveAttendance('present'));
     document.getElementById('confirmAbsentBtn').addEventListener('click', () => saveAttendance('absent'));
-  }
-
-  function showBackupNotification() {
-      document.getElementById('settingsNotificationDot').style.display = 'block';
-      if (state.currentView && state.currentView.name === 'settings') {
-          const backupCardDot = document.getElementById('backupRestoreCardDot');
-          if (backupCardDot) backupCardDot.style.display = 'block';
-      }
-  }
-
-  function hideBackupNotification() {
-    document.getElementById('settingsNotificationDot').style.display = 'none';
-    const backupCardDot = document.getElementById('backupRestoreCardDot');
-    if (backupCardDot) backupCardDot.style.display = 'none';
   }
 
   auth.onAuthStateChanged(async user => {
