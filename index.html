@@ -87,12 +87,21 @@
   
   .card{
     background:var(--card); border-radius:12px; padding:16px; display:flex; flex-direction:column;
-    align-items:center; text-align:center; gap:8px; box-shadow:0 10px 30px rgba(2,6,23,.04);
+    align-items:center; text-align:center; gap:8px; box-shadow:0 10px 30px rgba(2,6,23,.05);
     cursor:pointer; border: 2px solid transparent; position: relative; /* For notification dot */
   }
   .card .icon{
     width:50px; height:50px; border-radius:14px; display:flex; align-items:center;
     justify-content:center; color:white; font-size:20px; margin-bottom: 4px;
+  }
+  /* *** إضافة: تطبيق التصميم الاحترافي للبطاقات (مثل تطبيق المدير) *** */
+  body:not(.dark) .card {
+    border: 1px solid rgba(2, 6, 23, 0.1);
+    box-shadow: 0 4px 12px rgba(2,6,23,.04);
+  }
+  body.dark .card {
+    border: 1px solid rgba(255, 255, 255, 0.1); /* إطار أبيض شفاف */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* ظل داكن خفيف للعمق */
   }
 
   .btn{background:var(--primary);color:white;padding:6px 10px;border-radius:8px;font-weight:700; border:none; cursor:pointer; font-size: 13px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
