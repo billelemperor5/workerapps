@@ -1444,6 +1444,7 @@ function getThemeColors() {
 
   // *** إضافة: واجهة مبدئية لسجل المشتريات للعامل ***
   function getPurchasesView() { 
+        const activeTab = state.currentView.params.tab || 'pending';
         // Defensive: de-duplicate and sort purchases safely when createdAt might be
         // a Firestore Timestamp, a JS Date, or a number.
         function normalizeTimestamp(ts) {
@@ -1465,35 +1466,36 @@ function getThemeColors() {
             return Array.from(map.values());
         }
 
-        const safeList = dedupePurchases(Array.isArray(state.purchases) ? state.purchases.slice() : []);
-        const sortedPurchases = safeList.sort((a, b) => normalizeTimestamp(b.createdAt) - normalizeTimestamp(a.createdAt));
+        const allPurchases = dedupePurchases(Array.isArray(state.purchases) ? state.purchases.slice() : []).sort((a, b) => normalizeTimestamp(b.createdAt) - normalizeTimestamp(a.createdAt));
 
-    const statusStyles = {
-        pending: { text: 'قيد المراجعة', color: '#f59e0b' },
-        approved: { text: 'تمت الموافقة', color: '#10b981' },
-        rejected: { text: 'مرفوض', color: '#ef4444' }
-    };
+        const filteredPurchases = allPurchases.filter(p => p.status === activeTab);
 
-    const purchasesListHTML = sortedPurchases.length > 0 ? sortedPurchases.map(purchase => {
-        return `
-        <div class="activity-log-item" data-action="view-purchase-details" data-firestore-id="${purchase.firestoreId || purchase.id || ''}" style="cursor: pointer;">
-            <div style="display:flex; align-items:center; gap: 12px;" >
-                <div class="icon" style="background: var(--bg); color: var(--muted);"><i class="fas fa-receipt"></i></div>
-                <div>
-                    <div style="font-weight: 700;">${purchase.description}</div>
-                    <div style="font-size: 13px; color: var(--muted);">${new Date(purchase.date).toLocaleDateString('ar-DZ')}</div>
+        const statusStyles = {
+            pending: { text: 'قيد المراجعة', color: '#f59e0b', icon: 'fa-hourglass-half' },
+            approved: { text: 'تمت الموافقة', color: '#10b981', icon: 'fa-check-circle' },
+            rejected: { text: 'مرفوض', color: '#ef4444', icon: 'fa-times-circle' }
+        };
+
+        const purchasesListHTML = filteredPurchases.length > 0 ? filteredPurchases.map(purchase => {
+            return `
+            <div class="activity-log-item" data-action="view-purchase-details" data-firestore-id="${purchase.firestoreId || purchase.id || ''}" style="cursor: pointer;">
+                <div style="display:flex; align-items:center; gap: 12px;" >
+                    <div class="icon" style="background: var(--bg); color: var(--muted);"><i class="fas fa-receipt"></i></div>
+                    <div>
+                        <div style="font-weight: 700;">${purchase.description}</div>
+                        <div style="font-size: 13px; color: var(--muted);">${new Date(purchase.date).toLocaleDateString('ar-DZ')}</div>
+                    </div>
+                </div>
+                <div style="text-align: left; display:flex; align-items:center; justify-content:flex-end; gap:12px;">
+                    <div style="font-weight: 700; font-size: 15px; color: #ef4444;">-${purchase.amount.toLocaleString()} د.ج</div>
+                    <div class="status-badge" style="background-color: ${statusStyles[purchase.status]?.color || '#64748b'};">
+                        ${statusStyles[purchase.status]?.text || 'غير معروف'}
+                    </div>
                 </div>
             </div>
-            <div style="text-align: left; display:flex; align-items:center; justify-content:flex-end; gap:12px;">
-                <div style="font-weight: 700; font-size: 15px; color: #ef4444;">-${purchase.amount.toLocaleString()} د.ج</div>
-                <div class="status-badge" style="background-color: ${statusStyles[purchase.status]?.color || '#64748b'};">
-                    ${statusStyles[purchase.status]?.text || 'غير معروف'}
-                </div>
-            </div>
-        </div>
-    `}).join('') : `
-        <p style="text-align:center; color:var(--muted); padding: 20px;">لم تقم بإضافة أي مشتريات بعد.</p>
-    `;
+        `}).join('') : `
+            <p style="text-align:center; color:var(--muted); padding: 20px;">لا توجد سجلات في هذا القسم.</p>
+        `;
 
     return `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
@@ -1501,7 +1503,23 @@ function getThemeColors() {
             <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">سجل المشتريات</h3>
             <button onclick="openPurchaseModal()" class="btn icon-btn" title="إضافة شراء جديد" ${!state.isSubscribed ? 'disabled' : ''}><i class="fas fa-plus"></i></button>
         </div>
+        
+        <!-- *** إضافة: تبويبات لتصفية الحالات *** -->
+        <div class="tab-card-container">
+            <div class="tab-card ${activeTab === 'pending' ? 'active' : ''}" onclick="renderView('purchases', {tab: 'pending'})" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                <i class="fas fa-hourglass-half"></i><span>قيد المراجعة</span>
+            </div>
+            <div class="tab-card ${activeTab === 'approved' ? 'active' : ''}" onclick="renderView('purchases', {tab: 'approved'})" style="background: linear-gradient(135deg, #10b981, #059669);">
+                <i class="fas fa-check-circle"></i><span>المقبولة</span>
+            </div>
+            <div class="tab-card ${activeTab === 'rejected' ? 'active' : ''}" onclick="renderView('purchases', {tab: 'rejected'})" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                <i class="fas fa-times-circle"></i><span>المرفوضة</span>
+            </div>
+        </div>
+
+        <div id="purchasesTabContent" class="tab-content active">
         ${purchasesListHTML}
+        </div>
     `;
   }
 
@@ -2695,6 +2713,47 @@ function getThemeColors() {
             }
         });
         firestoreUnsubscribeFunctions.push(messagesUnsubscribe);
+
+        // *** إضافة: مستمع جديد لتحديثات سجل المشتريات ***
+        // *** تعديل: تحسين المستمع ليتعامل مع جميع أنواع التغييرات ***
+        const purchasesUnsubscribe = firestore.collection('users').doc(workerUid).collection('purchases')
+            .onSnapshot(async (querySnapshot) => {
+                let needsRender = false;
+                for (const change of querySnapshot.docChanges()) {
+                    const data = change.doc.data();
+                    const firestoreId = change.doc.id;
+                    // *** إصلاح: التأكد من أن createdAt موجود قبل محاولة تحويله ***
+                    const timestamp = data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate().getTime() : new Date(data.createdAt).getTime()) : Date.now();
+                    const record = { ...data, firestoreId: firestoreId, timestamp: timestamp };
+
+                    if (change.type === 'added') {
+                        // سجل جديد أضيف (قد يكون من جهاز آخر لنفس العامل)
+                        await db.purchases.put(record);
+                        if (!state.purchases.some(p => p.firestoreId === firestoreId)) {
+                            state.purchases.push(record);
+                            needsRender = true;
+                        }
+                    } else if (change.type === 'modified') {
+                        // تم تحديث سجل (الحالة تغيرت من "قيد المراجعة" إلى "مقبول/مرفوض")
+                        await db.purchases.put(record);
+                        const index = state.purchases.findIndex(p => p.firestoreId === firestoreId);
+                        if (index > -1) state.purchases[index] = record;
+                        needsRender = true;
+                        showToast(`تم تحديث حالة طلب: ${record.description}`);
+                    } else if (change.type === 'removed') {
+                        // تم حذف سجل (على الأغلب بعد المراجعة من قبل المدير)
+                        await db.purchases.delete(firestoreId);
+                        state.purchases = state.purchases.filter(p => p.firestoreId !== firestoreId);
+                        needsRender = true;
+                        showToast(`تمت أرشفة طلب: ${record.description}`);
+                    }
+                }
+                // إذا كنا في صفحة المشتريات، قم بتحديث الواجهة لإظهار التغيير
+                if (needsRender && state.currentView.name === 'purchases') {
+                    await renderView('purchases');
+                }
+            });
+        firestoreUnsubscribeFunctions.push(purchasesUnsubscribe);
   }
 
 </script>
