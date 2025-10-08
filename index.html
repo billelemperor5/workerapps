@@ -830,7 +830,6 @@
 
 
 
-
   <div id="printContainer" class="print-only" style="display: none;"></div>
 
   <div id="toastContainer" class="toast-container"></div>
@@ -2750,15 +2749,24 @@ function getThemeColors() {
                         needsRender = true;
                         showToast(`تم تحديث حالة طلب: ${record.description}`);
                     } else if (change.type === 'removed') {
-                        // تم حذف سجل (على الأغلب بعد المراجعة من قبل المدير)
-                        await db.purchases.delete(firestoreId);
+                        // *** تحسين: إزالة العنصر من الواجهة بسلاسة بدلاً من إعادة الرسم الكامل ***
+                        if (state.currentView.name === 'purchases') {
+                            const itemEl = document.querySelector(`.activity-log-item[data-firestore-id="${firestoreId}"]`);
+                            if (itemEl) {
+                                itemEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                itemEl.style.opacity = '0';
+                                itemEl.style.transform = 'translateX(-20px)';
+                                setTimeout(() => itemEl.remove(), 300);
+                            }
+                        }
+                        // حذف السجل من قاعدة البيانات المحلية والحالة
+                        await db.purchases.delete(firestoreId).catch(err => console.warn("Failed to delete from local DB on remove event:", err));
                         state.purchases = state.purchases.filter(p => p.firestoreId !== firestoreId);
-                        needsRender = true;
-                        showToast(`تمت أرشفة طلب: ${record.description}`);
+                        showToast('تم الحذف بنجاح'); // إظهار الرسالة بعد التحديث
                     }
                 }
-                // إذا كنا في صفحة المشتريات، قم بتحديث الواجهة لإظهار التغيير
-                if (needsRender && state.currentView.name === 'purchases') {
+                // *** تحسين: إعادة الرسم فقط عند الإضافة أو التعديل، وليس عند الحذف ***
+                if (needsRender && state.currentView.name === 'purchases' && querySnapshot.docChanges().some(c => c.type !== 'removed')) {
                     await renderView('purchases');
                 }
             });
