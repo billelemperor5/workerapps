@@ -468,6 +468,43 @@
     text-overflow: ellipsis;
   }
 </style>
+<!-- *** إضافة: تنسيقات خاصة بنافذة الرسائل *** -->
+<style>
+  .message-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .message-item {
+    background: var(--bg);
+    padding: 12px;
+    border-radius: 8px;
+    border-right: 4px solid var(--primary);
+  }
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .message-text {
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    flex-grow: 1;
+  }
+  .message-footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+    text-align: left;
+  }
+</style>
 </head>
 <body>
   <div id="splash" class="splash" role="dialog" aria-hidden="false">
@@ -525,6 +562,10 @@
                 </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center; position: relative;">
+                <button id="messagesBtn" class="btn icon-btn ghost" title="الرسائل الواردة">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-dot" id="messagesNotificationDot"></span>
+                </button>
                 <button id="userProfileBtn" class="btn icon-btn ghost" title="الحساب">
                     <i id="userProfileIcon" class="fas fa-sign-in-alt"></i>
                 </button>
@@ -760,6 +801,22 @@
       </div>
   </div>
 
+  <!-- *** إضافة: نافذة منبثقة لعرض الرسائل الواردة *** -->
+  <div id="messagesModal" class="modal-container modal-hidden">
+      <div class="modal-backdrop" data-action="close-modal"></div>
+      <div class="modal-content" style="max-width: 500px;">
+          <div class="modal-header">
+              <h3>الرسائل الواردة</h3>
+              <button class="close-btn" data-action="close-modal">&times;</button>
+          </div>
+          <div class="modal-body">
+              <div id="messagesListContainer" class="message-list">
+                  <!-- Messages will be injected here -->
+              </div>
+          </div>
+      </div>
+  </div>
+
 
 
 
@@ -803,10 +860,14 @@ function getThemeColors() {
       expenses: '++id, date, projectId, workerId, supplierId, category, paymentStatus',
       // *** إصلاح: استخدام firestoreId كمفتاح أساسي وتحديد الفهارس اللازمة ***
       purchases: 'firestoreId, workerId, status',
-      app_settings: 'key'
+      app_settings: 'key',
+      messages: '++id, timestamp' // *** إضافة: جدول للرسائل ***
   });
 
   let isDbOpen = false;
+
+  // *** إضافة: متغير لتخزين دوال إلغاء الاشتراك في Firestore لمنع التكرار ***
+  let firestoreUnsubscribeFunctions = [];
 
   function getOrCreateDeviceId() {
     let deviceId = localStorage.getItem('appDeviceId_worker');
@@ -828,6 +889,10 @@ function getThemeColors() {
     expenses: [],
     hasNewSync: false, // *** إضافة: حالة لتتبع وجود مزامنة جديدة ***
     purchases: [], // *** إضافة: حالة لتخزين المشتريات ***
+    isSubscribed: false, // *** إضافة: حالة لتتبع اشتراك المدير ***
+    messages: [], // *** إضافة: حالة لتخزين الرسائل ***
+    hasNewMessages: false, // *** إضافة: حالة لتتبع الرسائل الجديدة ***
+    showAllMessages: false, // *** إضافة: حالة لعرض كل الرسائل أو بعضها ***
     tempAttendanceData: {},
   };
 
@@ -868,6 +933,7 @@ function getThemeColors() {
       state.debts = await db.debts.toArray();
       state.expenses = await db.expenses.toArray();
       state.purchases = await db.purchases.toArray();
+      state.messages = await db.messages.toArray();
       state.currentView = { name: 'home', params: {} };
   }
 
@@ -918,6 +984,7 @@ function getThemeColors() {
         state.suppliers = await db.suppliers.toArray();
         state.debts = await db.debts.toArray();
         state.expenses = await db.expenses.toArray();
+        state.messages = await db.messages.toArray();
     } catch (error) {
         console.error("Error fetching data in renderView:", error);
         mainContent.innerHTML = `<div class="view-container"><p style="color: #ef4444; text-align: center;">حدث خطأ أثناء تحميل بيانات الواجهة.</p></div>`;
@@ -1432,7 +1499,7 @@ function getThemeColors() {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
             <button onclick="renderView('home')" class="btn icon-btn" title="العودة للرئيسية"><i class="fas fa-arrow-right"></i></button>
             <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">سجل المشتريات</h3>
-            <button onclick="openPurchaseModal()" class="btn icon-btn" title="إضافة شراء جديد"><i class="fas fa-plus"></i></button>
+            <button onclick="openPurchaseModal()" class="btn icon-btn" title="إضافة شراء جديد" ${!state.isSubscribed ? 'disabled' : ''}><i class="fas fa-plus"></i></button>
         </div>
         ${purchasesListHTML}
     `;
@@ -1603,6 +1670,11 @@ function getThemeColors() {
   }
 
  function openPurchaseModal() {
+      // *** إضافة: التحقق من الاشتراك قبل فتح النافذة ***
+      if (!state.isSubscribed) {
+          showCustomToast('هذه الميزة تتطلب اشتراكاً فعالاً من المدير.', 'error');
+          return;
+      }
       const form = document.getElementById('purchaseForm');
       form.reset();
       document.getElementById('purchaseDate').valueAsDate = new Date();
@@ -1635,6 +1707,13 @@ function getThemeColors() {
           workerName: document.getElementById('userDisplayName')?.textContent || user.email,
           status: 'pending'
       };
+
+      // *** إضافة: تحقق أخير من جانب الخادم (المنطق) قبل الإرسال ***
+      if (!state.isSubscribed) {
+          showCustomToast('لا يمكن إرسال الطلب. اشتراك المدير غير فعال.', 'error');
+          submitBtn.disabled = false;
+          return;
+      }
 
       try {
           // *** إصلاح: الخطوة 1 - إضافة البيانات إلى Firestore أولاً للحصول على ID ***
@@ -1671,6 +1750,139 @@ function getThemeColors() {
           submitBtn.disabled = false;
       }
   }
+
+  /**
+   * *** إضافة: دالة احترافية لتنسيق الوقت النسبي للرسائل ***
+   * تعرض "منذ 5 دقائق" أو "أمس" بدلاً من التاريخ الكامل للرسائل الحديثة.
+   */
+  function formatRelativeTime(timestamp) {
+      const now = new Date();
+      const messageDate = new Date(timestamp);
+      const diffInSeconds = Math.floor((now - messageDate) / 1000);
+      const diffInDays = Math.floor(diffInSeconds / 86400);
+
+      if (isNaN(diffInSeconds)) {
+          return "وقت غير معروف";
+      }
+
+      if (diffInSeconds < 60) {
+          return `الآن`;
+      }
+
+      const rtf = new Intl.RelativeTimeFormat('ar', { numeric: 'auto' });
+
+      if (diffInDays < 7) {
+          if (diffInDays > 0) return rtf.format(-diffInDays, 'day');
+          const diffInHours = Math.floor(diffInSeconds / 3600);
+          if (diffInHours > 0) return rtf.format(-diffInHours, 'hour');
+          const diffInMinutes = Math.floor(diffInSeconds / 60);
+          return rtf.format(-diffInMinutes, 'minute');
+      }
+
+      // للرسائل الأقدم من أسبوع، اعرض التاريخ العادي
+      return messageDate.toLocaleString('ar-DZ', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  /**
+   * *** إضافة: دالة لتنسيق الوقت المتبقي قبل الحذف ***
+   */
+  function formatRemainingTime(ms) {
+      if (ms <= 0) {
+          return 'سيتم الحذف قريباً';
+      }
+
+      const totalSeconds = Math.floor(ms / 1000);
+      const totalMinutes = Math.floor(totalSeconds / 60);
+      const totalHours = Math.floor(totalMinutes / 60);
+
+      const hours = totalHours;
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0) {
+          return `يتبقى: ${hours} ساعة و ${minutes} دقيقة`;
+      } else if (minutes > 0) {
+          return `يتبقى: ${minutes} دقيقة`;
+      } else {
+          return 'يتبقى: أقل من دقيقة';
+      }
+  }
+
+
+  // *** إضافة: دوال خاصة بنافذة الرسائل ***
+  function openMessagesModal() {
+      // *** إضافة: التحقق من وجود اشتراك فعال قبل عرض الرسائل ***
+      const user = auth.currentUser;
+      if (!user || !state.isSubscribed) {
+          showCustomToast('هذه الميزة تتطلب اشتراكاً فعالاً من المدير.', 'error');
+          return;
+      }
+
+      renderMessages();
+      openModal('messagesModal');
+      // إخفاء نقطة الإشعار عند فتح النافذة
+      if (state.hasNewMessages) {
+          state.hasNewMessages = false;
+          localStorage.setItem('lastSeenMessageTimestamp', Date.now().toString());
+          updateNotificationDots();
+      }
+  }
+
+  /**
+   * *** تعديل: دالة جديدة لرسم الرسائل مع منطق "عرض الكل" ***
+   */
+  function renderMessages() {
+      const container = document.getElementById('messagesListContainer');
+      const sortedMessages = state.messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      if (sortedMessages.length === 0) {
+          container.innerHTML = `<p style="text-align:center; color:var(--muted);">لا توجد رسائل واردة.</p>`;
+          return;
+      }
+
+      const messagesToDisplay = state.showAllMessages ? sortedMessages : sortedMessages.slice(0, 3);
+
+      let messagesHTML = messagesToDisplay.map(msg => {
+          const formattedDate = formatRelativeTime(msg.timestamp);
+          // *** إصلاح: التأكد من أن msg.timestamp هو رقم قبل إجراء العمليات الحسابية ***
+          const timestampMs = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
+          const remainingMs = (timestampMs + 48 * 60 * 60 * 1000) - Date.now();
+          const remainingTimeStr = formatRemainingTime(remainingMs);
+
+          return `
+              <div class="message-item">
+                  <div class="message-header">
+                      <i class="fas fa-user-tie" style="color: var(--primary);"></i>
+                      <span>من: المدير</span>
+                      <span style="margin-right: auto;">${formattedDate}</span>
+                  </div>
+                  <p class="message-text">${msg.text}</p>
+                  <div class="message-footer">
+                      <i class="fas fa-hourglass-half" style="margin-left: 4px;"></i>
+                      <span>${remainingTimeStr}</span>
+                  </div>
+              </div>
+          `;
+      }).join('');
+
+      if (!state.showAllMessages && sortedMessages.length > 3) {
+          messagesHTML += `<button id="showAllMessagesBtn" class="btn" style="width: 100%; margin-top: 12px; background: var(--bg); color: var(--text-primary); border: 1px solid var(--border-color);">عرض الكل (${sortedMessages.length})</button>`;
+      }
+
+      container.innerHTML = messagesHTML;
+
+      document.getElementById('showAllMessagesBtn')?.addEventListener('click', () => {
+          state.showAllMessages = true;
+          renderMessages();
+      });
+  }
+
+  function updateNotificationDots() {
+      const messagesDot = document.getElementById('messagesNotificationDot');
+      if (messagesDot) {
+          messagesDot.style.display = state.hasNewMessages ? 'block' : 'none';
+      }
+  }
+
 
   // *** إضافة: نافذة منبثقة لإدخال PIN العامل ***
   document.body.insertAdjacentHTML('beforeend', `
@@ -1877,8 +2089,15 @@ function getThemeColors() {
   document.getElementById('logoutBtn')?.addEventListener('click', async () => {
       try {
           await auth.signOut();
+          // *** إضافة: تنظيف مستمعي Firestore عند تسجيل الخروج ***
+          cleanupFirestoreListeners();
+          // *** إصلاح جذري: مسح قاعدة البيانات المحلية عند تسجيل الخروج ***
+          // هذا يضمن عدم تداخل بيانات حساب مع حساب آخر عند تسجيل الدخول مرة أخرى.
+          // تم نقله بعد تسجيل الخروج لضمان إيقاف كل العمليات أولاً.
+          await db.delete();
+          console.log("Local database cleared on logout.");
           showToast('تم تسجيل الخروج بنجاح.'); 
-          window.location.reload(); // *** إصلاح: إعادة تحميل الصفحة لتنظيف الحالة وضمان عمل تسجيل الدخول مرة أخرى ***
+          window.location.reload(); // إعادة تحميل الصفحة لتنظيف الحالة بالكامل
       } catch (error) {
           console.error("Logout Error:", error);
           showCustomToast('حدث خطأ أثناء تسجيل الخروج.', 'error');
@@ -1931,28 +2150,46 @@ function getThemeColors() {
         }
     });
 
+    // *** إضافة: معالج حدث لزر ونافذة الرسائل ***
+    document.getElementById('messagesBtn')?.addEventListener('click', openMessagesModal);
+    document.getElementById('messagesModal')?.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
+            // *** تعديل: إعادة تعيين حالة عرض كل الرسائل عند إغلاق النافذة ***
+            state.showAllMessages = false;
+            closeModal('messagesModal');
+        }
+    });
+
     mainContent.addEventListener('click', (e) => {
         const target = e.target;
 
-        const moduleCard = target.closest('.card[data-key]');
+        const moduleCard = target.closest('.card[data-key]:not([style*="pointer-events: all;"])');
         if (moduleCard && !target.closest('.purchase-delete-btn')) {
-            renderView(moduleCard.dataset.key, {});
+            // *** إضافة: التحقق من الاشتراك قبل فتح أي ميزة ***
+            if (auth.currentUser && !state.isSubscribed) {
+                // *** تعديل: السماح بالوصول إلى سجل العمال ولكن ليس المشتريات ***
+                if (moduleCard.dataset.key === 'purchases') {
+                    showCustomToast('هذه الميزة تتطلب اشتراكاً فعالاً من المدير.', 'error');
+                    return;
+                }
+            }
+
+            renderView(moduleCard.dataset.key, {}); // فتح الواجهة فقط إذا كان مشتركاً
             return;
         }
 
         // Delegation: فتح تفاصيل السجل عند الضغط على عنصر السجل
         const purchaseItem = target.closest('[data-action="view-purchase-details"]');
-        // *** إصلاح: التأكد من أن النقر لم يكن على زر الحذف قبل فتح التفاصيل ***
         if (purchaseItem && !target.closest('.purchase-delete-btn')) {
             const id = purchaseItem.dataset.firestoreId;
             if (id) openPurchaseDetailsModal(id);
+            return; // *** إضافة: إيقاف التنفيذ بعد معالجة الحدث ***
         }
 
         const deleteBtn = target.closest('.purchase-delete-btn');
         if (deleteBtn) {
-            
-            e.stopPropagation(); // *** إصلاح: منع فتح نافذة التفاصيل ***
-            handlePurchaseDeleteClick({ currentTarget: deleteBtn });
+            e.stopPropagation(); // منع فتح نافذة التفاصيل
+            handlePurchaseDeleteClick({ currentTarget: deleteBtn }); // استدعاء دالة الحذف
         }
     });
 
@@ -2167,8 +2404,9 @@ function getThemeColors() {
           // *** تعديل: إخفاء نقطة الإشعار وحفظ وقت آخر تحديث ناجح ***
           state.hasNewSync = false;
           const lastUpdateTime = latestLog.timestamp?.toDate().getTime();
-          if (lastUpdateTime) {
-              localStorage.setItem('lastSeenUpdate', lastUpdateTime.toString());
+          if (lastUpdateTime && user) {
+              // *** إصلاح: حفظ وقت التحديث لكل مستخدم على حدة ***
+              localStorage.setItem(`lastSeenUpdate_${user.uid}`, lastUpdateTime.toString());
           }
 
           // تحديث قاعدة البيانات المحلية (Dexie) بالبيانات الجديدة
@@ -2247,13 +2485,37 @@ function getThemeColors() {
       }
   }
 
+  /**
+   * *** إضافة: دالة لحذف الرسائل القديمة تلقائياً ***
+   * تحذف الرسائل التي مر عليها أكثر من 48 ساعة من قاعدة البيانات المحلية.
+   */
+  async function cleanupOldMessages() {
+      try {
+          const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
+          const deletedCount = await db.messages.where('timestamp').below(fortyEightHoursAgo).delete();
+          if (deletedCount > 0) {
+              console.log(`[Cleanup] Deleted ${deletedCount} old messages.`);
+          }
+      } catch (error) {
+          console.error("Error cleaning up old messages:", error);
+      }
+  }
+
   async function initializeApp() {
     if (isDbOpen) return; // Prevent re-initialization
+    // *** إصلاح: تنظيف أي مستمعين قدامى عند بدء تشغيل التطبيق لضمان بداية نظيفة ***
+    if (auth.currentUser) {
+        cleanupFirestoreListeners();
+    }
+
     try { 
         await db.open();
         isDbOpen = true; 
 
         await loadState();
+        
+        // *** إضافة: تشغيل دالة تنظيف الرسائل عند بدء تشغيل التطبيق ***
+        await cleanupOldMessages();
         
         const savedTheme = await db.app_settings.get('selected_theme');
         const themeToApply = savedTheme ? savedTheme.value : 'default-light';
@@ -2263,6 +2525,8 @@ function getThemeColors() {
         await renderView(state.currentView.name || 'home', state.currentView.params || {});
         
         initializeEventListeners();
+
+        // Listener setup is now handled by onAuthStateChanged
 
         // Worker Image Listeners
         document.getElementById('workerImageUploadBtn').addEventListener('click', () => document.getElementById('workerImageInput').click());
@@ -2319,6 +2583,11 @@ function getThemeColors() {
             const userDisplayName = document.getElementById('userDisplayName');
             const userDisplayEmail = document.getElementById('userDisplayEmail');
             
+            // *** إصلاح: جلب حالة الاشتراك فوراً عند تسجيل الدخول لضمان ظهور الأقفال ***
+            const userDoc = await firestore.collection('users').doc(user.uid).get();
+            const userData = userDoc.data();
+            state.isSubscribed = userData?.subscription?.isActive === true;
+
             firestore.collection('users').doc(user.uid).get().then(doc => {
                 if (doc.exists) {
                     const userData = doc.data();
@@ -2332,7 +2601,7 @@ function getThemeColors() {
                 userDisplayName.textContent = user.email;
             });
 
-            // *** تعديل: إعداد المستمعين مباشرة باستخدام uid العامل الحالي ***
+            // *** الخطوة 3: إنشاء المستمعين عند تسجيل الدخول ***
             setupFirestoreListeners(user.uid);
 
             // Also react to localStorage changes (same-machine syncs)
@@ -2358,55 +2627,74 @@ function getThemeColors() {
             loggedInView.style.display = 'none';
             loggedOutView.style.display = 'block';
             userProfileIcon.className = 'fas fa-sign-in-alt';
+            
+            // *** الخطوة 3: تنظيف المستمعين عند تسجيل الخروج ***
+            cleanupFirestoreListeners();
         }
       });
   });
 
-  // *** إضافة: دالة لتجميع مستمعي Firestore ***
-  // *** تعديل: المستمعون الآن يعتمدون على معرّف العامل المسجل دخوله ***
+  function cleanupFirestoreListeners() {
+    firestoreUnsubscribeFunctions.forEach(unsubscribe => unsubscribe());
+    firestoreUnsubscribeFunctions = [];
+  }
+
+  // *** إصلاح: تعريف الدالة بشكل صحيح ووضع الكود بداخلها ***
   function setupFirestoreListeners(workerUid) {
-      // *** تعديل: المستمع يراقب مستند العامل الخاص مباشرة ***
-      firestore.collection('users').doc(workerUid).collection('workLogs').doc('latest').onSnapshot(doc => {
-          if (doc.exists) {
-              const logData = doc.data();
-              const lastUpdateTime = logData.timestamp?.toDate().getTime();
-              const lastSeenTime = parseInt(localStorage.getItem('lastSeenUpdate') || '0');
-  
-              if (lastUpdateTime && lastUpdateTime > lastSeenTime) {
-                  state.hasNewSync = true;
-                  // إعادة عرض الواجهة الرئيسية لإظهار النقطة الحمراء
-                  if (state.currentView.name === 'home') {
-                      renderView('home');
-                  }
-                  // إظهار إشعار مرئي على بطاقة سجل العمال
-                  const workerCard = document.querySelector('.card[data-key="workers"]');
-                  if (workerCard) {
-                      workerCard.classList.add('has-update');
-                  }
-              }
-          }
-      });
-  
-      // مستمع المشتريات
-      // *** تعديل: العامل يقرأ المشتريات من مستنده الخاص ***
-      firestore.collection('users').doc(workerUid).collection('purchases')
-                .onSnapshot(async (querySnapshot) => {
-                    const changes = querySnapshot.docChanges();
-                    let needsRender = false;
-                    for (const change of changes) {
-                        const data = { ...change.doc.data(), firestoreId: change.doc.id };
-                        if (change.type === 'added' || change.type === 'modified') {
-                            await db.purchases.put(data);
-                            needsRender = true;
-                        } else if (change.type === 'removed') {
-                            await db.purchases.delete(data.firestoreId);
-                            needsRender = true;
-                        }
-                    }
-                    if (needsRender && state.currentView.name === 'purchases') {
-                        await renderView('purchases'); // Re-render only if on the correct view
-                    }
-                });
+        // *** إصلاح جوهري: تنظيف أي مستمعين سابقين قبل إنشاء مستمعين جدد ***
+        // هذا يضمن عدم وجود مستمعين مكررين ويعالج حالات إعادة تسجيل الدخول.
+        cleanupFirestoreListeners();
+
+        // مستمع لحالة الاشتراك (يجب أن يكون منفصلاً لأنه يحدث الواجهة)
+        const subUnsubscribe = firestore.collection('users').doc(workerUid).onSnapshot(doc => {
+            const newSubStatus = doc.data()?.subscription?.isActive === true;
+            if (state.isSubscribed !== newSubStatus) {
+                state.isSubscribed = newSubStatus;
+                renderView(state.currentView.name, state.currentView.params); // تحديث الواجهة لإظهار/إخفاء الأقفال
+            }
+        });
+        firestoreUnsubscribeFunctions.push(subUnsubscribe);
+
+        // مستمع لسجلات العمل (المزامنة)
+        const workLogsUnsubscribe = firestore.collection('users').doc(workerUid).collection('workLogs').doc('latest').onSnapshot(doc => {
+            if (doc.exists) {
+                const logData = doc.data();
+                const lastUpdateTime = logData.timestamp?.toDate().getTime();
+                const lastSeenTime = parseInt(localStorage.getItem(`lastSeenUpdate_${workerUid}`) || '0');
+                if (lastUpdateTime && lastUpdateTime > lastSeenTime) {
+                    state.hasNewSync = true;
+                    const refreshBtn = document.getElementById('refreshWorkersBtn');
+                    if (refreshBtn) refreshBtn.classList.add('glow');
+                }
+            }
+        });
+        firestoreUnsubscribeFunctions.push(workLogsUnsubscribe);
+
+        // مستمع للرسائل (لا يحدث الواجهة مباشرة لتجنب التكرار)
+        const messagesUnsubscribe = firestore.collection('users').doc(workerUid).collection('messages').onSnapshot(async (querySnapshot) => {
+            const lastSeen = parseInt(localStorage.getItem('lastSeenMessageTimestamp') || '0');
+            let newMessagesFound = false;
+            for (const change of querySnapshot.docChanges()) {
+                if (change.type === 'added') {
+                    const data = change.doc.data();
+                    const messageId = change.doc.id; // الحصول على معرّف المستند
+                    const msgTimestamp = data.timestamp?.toDate().getTime() || Date.now();
+                    const newMessage = { ...data, id: messageId, timestamp: msgTimestamp };
+
+                    // *** إصلاح: التحقق من عدم وجود الرسالة قبل إضافتها لتجنب التكرار ***
+                    if (state.messages.some(m => m.id === messageId)) continue;
+
+                    await db.messages.add(newMessage);
+                    state.messages.push(newMessage);
+                    if (msgTimestamp > lastSeen) newMessagesFound = true; // لا يزال هذا ضرورياً للإشعارات
+                }
+            }
+            if (newMessagesFound) {
+                state.hasNewMessages = true;
+                updateNotificationDots();
+            }
+        });
+        firestoreUnsubscribeFunctions.push(messagesUnsubscribe);
   }
 
 </script>
