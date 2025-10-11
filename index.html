@@ -1298,6 +1298,31 @@ function getThemeColors() {
         return;
     }
 
+    // *** إصلاح: جلب أحدث البيانات من السيرفر عند عرض واجهة البلاغات لضمان عدم وجود بيانات قديمة ***
+    if (viewName === 'reports') {
+        const user = auth.currentUser;
+        if (user) {
+            try {
+                const querySnapshot = await firestore.collection('reports')
+                    .where('submittedBy', '==', user.uid)
+                    .get({ source: 'server' }); // Force a server read
+
+                const serverReports = [];
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    serverReports.push({ ...data, firestoreId: doc.id, createdAt: normalizeTimestamp(data.createdAt) });
+                });
+
+                // Replace state and local DB with fresh data from server
+                state.reports = serverReports.sort((a, b) => normalizeTimestamp(b.createdAt) - normalizeTimestamp(a.createdAt));
+                await db.reports.bulkPut(state.reports);
+            } catch (error) {
+                console.error("Failed to force refresh reports from server:", error);
+                showCustomToast('فشل تحديث البلاغ من السيرفر.', 'error');
+            }
+        }
+    }
+
     const renderNewContent = async () => {
         mainContent.innerHTML = '';
         let content = '';
@@ -3661,42 +3686,42 @@ function getThemeColors() {
                         const report = { ...data, firestoreId: change.doc.id, createdAt: normalizeTimestamp(data.createdAt) };
                         
                         if (change.type === 'added') {
-                            // *** إصلاح: التحقق من عدم وجود البلاغ قبل إضافته لمنع التكرار ***
                             const exists = state.reports.some(r => r.firestoreId === report.firestoreId);
                             if (!exists) {
                                 await db.reports.put(report);
-                                state.reports.unshift(report); // إضافة البلاغ الجديد إلى بداية المصفوفة
+                                state.reports = [report, ...state.reports];
                                 needsRender = true;
                             }
                         } else if (change.type === 'modified') {
-                            await db.reports.put(report); // put يعمل كـ update إذا كان السجل موجوداً
+                            await db.reports.put(report);
                             const index = state.reports.findIndex(r => r.firestoreId === report.firestoreId);
                             if (index > -1) {
-                                state.reports[index] = report; // تحديث البلاغ الموجود
+                                state.reports = state.reports.map(r => r.firestoreId === report.firestoreId ? report : r);
                             } else {
-                                // إذا لم يكن موجوداً لسبب ما، أضفه
-                                state.reports.unshift(report);
+                                state.reports = [report, ...state.reports];
                             }
                             needsRender = true;
-                            // *** إضافة: تفعيل نقطة الإشعار عند تحديث بلاغ ***
                             state.hasNewReportUpdates = true;
-                            updateNotificationDots(); // تحديث الواجهة لإظهار النقطة
-
+                            updateNotificationDots(); 
                             showToast(`تم تحديث حالة بلاغك.`);
                         } else if (change.type === 'removed') {
                             await db.reports.delete(report.firestoreId);
-                            state.reports = state.reports.filter(r => r.firestoreId !== report.firestoreId); // إزالة البلاغ
+                            state.reports = state.reports.filter(r => r.firestoreId !== report.firestoreId);
                             needsRender = true;
                         }
                     }
-                    // إعادة فرز المصفوفة لضمان الترتيب الصحيح دائماً
-                    state.reports.sort((a, b) => normalizeTimestamp(b.createdAt) - normalizeTimestamp(a.createdAt));
+                    if (needsRender) {
+                        state.reports.sort((a, b) => normalizeTimestamp(b.createdAt) - normalizeTimestamp(a.createdAt));
+                    }
                 } catch (error) {
                     console.error("Error processing reports snapshot for worker:", error);
                 }
-                // *** إصلاح: إذا كانت هناك تغييرات والواجهة الحالية هي سجل البلاغات، أعد رسمها ***
+
+                // *** إصلاح جذري: إعادة رسم الواجهة إذا كانت مفتوحة لضمان التحديث الفوري ***
                 if (needsRender && state.currentView.name === 'reports') {
                     await renderView('reports');
+                } else if (needsRender) {
+                    updateNotificationDots(); // تحديث نقاط الإشعار فقط إذا لم تكن الواجهة مفتوحة
                 }
             }, (error) => {
                 console.error("Error in reports snapshot listener:", error);
