@@ -476,6 +476,117 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* *** إضافة: تنسيقات جديدة لاختيار العامل كبطاقات *** */
+  .worker-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .worker-selection-card {
+    background: var(--bg);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .worker-selection-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+  }
+  /* *** إضافة: تنسيقات جديدة لواجهة تفاصيل البلاغ *** */
+  .report-type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .report-type-card {
+    background: var(--bg);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .report-type-card.active {
+    border-color: var(--primary);
+    background-color: rgba(15, 118, 110, 0.1);
+    color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .report-type-card i { font-size: 22px; }
+  .report-type-card span { font-weight: 700; font-size: 14px; }
+  .form-group .input-with-icon { position: relative; }
+  .form-group .input-with-icon i { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); color: var(--muted); }
+  .form-group .input-with-icon input, .form-group .input-with-icon textarea { padding-right: 40px; }
+</style>
+<!-- *** إضافة: تنسيقات خاصة بميزة الملاحظات السريعة *** -->
+<style>
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  .note-card {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(2,6,23,.05);
+    border-top: 4px solid var(--primary);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .note-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(2,6,23,.08);
+  }
+  .note-title { margin: 0 0 8px; font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .note-content { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; min-height: 112px; }
+  .note-footer { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--muted); text-align: left; }
+  #noteContent { resize: vertical; min-height: 120px; line-height: 1.6; }
+  .color-swatches { display: flex; gap: 10px; margin-top: 8px; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s ease, border-color 0.2s ease; }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.selected { border-color: var(--primary); box-shadow: 0 0 0 2px var(--card); }
+  .add-note-container { max-width: 600px; margin: 0 auto 24px; background: var(--card); border-radius: 8px; box-shadow: 0 4px 12px rgba(2,6,23,.08); padding: 12px; }
+  .add-note-container input, .add-note-container textarea { width: 100%; border: none; background: transparent; padding: 8px; font-size: 15px; color: var(--text-primary); font-family: 'Tajawal', sans-serif; }
+  .add-note-container input:focus, .add-note-container textarea:focus { outline: none; }
+  .add-note-container #newNoteTitle { font-weight: 700; font-size: 16px; } .add-note-container #newNoteContent { resize: none; min-height: 40px; } .new-note-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+</style>
+<!-- *** إضافة: تنسيقات خاصة بالبلاغات المحمية *** -->
+<style>
+  .protected-report {
+    position: relative;
+    overflow: hidden;
+  }
+  .protected-report .report-content,
+  .protected-report .report-footer {
+    filter: blur(5px);
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  .protected-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.1);
+    color: var(--text-primary);
+    text-align: center;
+    font-weight: 700;
+  }
 </style>
 <!-- *** إضافة: تنسيقات خاصة بنافذة الرسائل *** -->
 <style>
@@ -650,6 +761,101 @@
       </div>
   </div>
 
+  <!-- *** إضافة: نافذة منبثقة لإرسال بلاغ للمدير *** -->
+  <div id="reportModal" class="modal-container modal-hidden">
+      <div class="modal-backdrop" data-action="close-modal"></div>
+      <div class="modal-content">
+          <div class="modal-header">
+              <h3 id="reportModalTitle">إرسال بلاغ للمدير</h3>
+              <button class="close-btn" data-action="close-modal">&times;</button>
+          </div>
+          <div class="modal-body">
+              <!-- *** تعديل: تحويل النموذج إلى نظام خطوات *** -->
+              <form id="reportForm">
+                  <input type="hidden" id="reportForWorkerId">
+                  <input type="hidden" id="reportForWorkerName">
+
+                  <!-- الخطوة 1: اختيار العامل -->
+                  <div id="reportStep1" class="report-step">
+                        <!-- *** تحسين: استبدال القائمة المنسدلة بشبكة بطاقات *** -->
+                        <div class="form-group">
+                            <label>اختر العامل الذي تريد التبليغ عنه</label>
+                            <div id="workerSelectionContainer" class="worker-selection-grid">
+                                <!-- سيتم حقن بطاقات العمال هنا -->
+                            </div>
+                        </div>
+                  </div>
+
+                  <!-- الخطوة 2: التحقق من PIN (إذا لزم الأمر) -->
+                  <div id="reportStep2" class="report-step" style="display: none;">
+                      <p>الرجاء إدخال رمز PIN للعامل <strong id="reportPinWorkerName"></strong> للمتابعة.</p>
+                      <div class="form-group">
+                          <input type="password" id="reportPinInput" required pattern="\d{4}" maxlength="4" style="text-align: center; font-size: 24px; letter-spacing: 10px;">
+                      </div>
+                      <div class="form-actions">
+                          <button type="button" id="reportBackToStep1" class="btn ghost">رجوع</button>
+                          <button type="button" id="reportVerifyPin" class="btn">تحقق</button>
+                      </div>
+                  </div>
+
+                  <!-- الخطوة 3: تفاصيل البلاغ -->
+                  <div id="reportStep3" class="report-step" style="display: none;">
+                      <!-- *** تحسين: استبدال القائمة المنسدلة ببطاقات اختيار *** -->
+                      <div class="form-group">
+                          <label>نوع البلاغ</label>
+                          <div class="report-type-selector">
+                              <div class="report-type-card active" data-type="غياب">
+                                  <i class="fas fa-calendar-times"></i>
+                                  <span>غياب</span>
+                              </div>
+                              <div class="report-type-card" data-type="طلب إجازة">
+                                  <i class="fas fa-umbrella-beach"></i>
+                                  <span>طلب إجازة</span>
+                              </div>
+                              <div class="report-type-card" data-type="شكوى">
+                                  <i class="fas fa-gavel"></i>
+                                  <span>شكوى</span>
+                              </div>
+                          </div>
+                          <input type="hidden" id="reportType" value="غياب">
+                      </div>
+                      <!-- *** إضافة: حقل تاريخ واحد للبلاغات العادية *** -->
+                      <div class="form-group" id="reportSingleDateGroup">
+                          <label for="reportDate">تاريخ البلاغ</label>
+                          <div class="input-with-icon">
+                              <i class="fas fa-calendar-day"></i>
+                              <input type="date" id="reportDate" required style="width: 100%;">
+                          </div>
+                      </div>
+                      <!-- *** إضافة: حقول فترة الإجازة (مخفية افتراضياً) *** -->
+                      <div class="form-group" id="reportDateRangeGroup" style="display: none;">
+                          <label>فترة الإجازة</label>
+                          <!-- *** تعديل: إضافة تسميات "من" و "إلى" لتوضيح الحقول *** -->
+                          <div style="display: flex; gap: 10px; align-items: flex-start;">
+                              <div style="flex: 1;">
+                                  <label for="reportStartDate" style="font-size: 13px; color: var(--muted); margin-bottom: 4px;">من</label>
+                                  <input type="date" id="reportStartDate" title="من تاريخ" style="width: 100%;">
+                              </div>
+                              <div style="flex: 1;">
+                                  <label for="reportEndDate" style="font-size: 13px; color: var(--muted); margin-bottom: 4px;">إلى</label>
+                                  <input type="date" id="reportEndDate" title="إلى تاريخ" style="width: 100%;">
+                              </div>
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <label for="reportNote">الملاحظة</label>
+                          <div class="input-with-icon">
+                              <i class="fas fa-pencil-alt"></i>
+                              <textarea id="reportNote" rows="4" required placeholder="اشرح سبب البلاغ..."></textarea>
+                          </div>
+                      </div>
+                      <div class="form-actions"><button type="button" id="submitReportBtn" class="btn" style="width: 100%; padding: 12px; font-size: 16px;"><i class="fas fa-paper-plane" style="margin-left: 8px;"></i> إرسال البلاغ</button></div>
+                  </div>
+              </form>
+          </div>
+      </div>
+  </div>
+
   <!-- Modal for adding attendance/payment -->
   <div id="activityModal" class="modal-container modal-hidden">
       <div class="modal-backdrop"></div>
@@ -764,6 +970,31 @@
       </div>
   </div>
 
+  <!-- *** إضافة: نافذة منبثقة للتحقق من PIN لعرض البلاغ *** -->
+  <div id="reportPinVerifyModal" class="modal-container modal-hidden">
+    <div class="modal-backdrop" data-action="close-modal"></div>
+    <div class="modal-content" style="max-width: 360px;">
+        <div class="modal-header">
+            <h3>التحقق من الهوية</h3>
+            <button class="close-btn" data-action="close-modal">&times;</button>
+        </div>
+        <div class="modal-body" style="text-align: center;">
+            <p style="margin-top:0; margin-bottom: 20px;">لعرض هذا البلاغ، الرجاء إدخال رمز PIN الخاص بالعامل <strong id="verifyPinWorkerName"></strong>.</p>
+            <form id="reportPinVerifyForm">
+                <input type="hidden" id="verifyPinReportId">
+                <input type="hidden" id="verifyPinWorkerId">
+                <div class="form-group">
+                    <input type="password" id="verifyPinInput" required pattern="\d{4}" maxlength="4" style="text-align: center; font-size: 24px; letter-spacing: 10px;">
+                </div>
+                <div class="form-actions" style="justify-content: center;">
+                    <button type="submit" class="btn" style="flex: 1;">عرض البلاغ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  </div>
+
+
   <!-- *** إضافة: نافذة منبثقة لإضافة المشتريات *** -->
   <div id="purchaseModal" class="modal-container modal-hidden">
       <div class="modal-backdrop"></div>
@@ -774,6 +1005,11 @@
           </div>
           <div class="modal-body">
               <form id="purchaseForm">
+                  <!-- *** إضافة: حقل جديد لإدخال اسم العامل *** -->
+                  <div class="form-group">
+                      <label for="purchaseWorkerName">اسم العامل</label>
+                      <input type="text" id="purchaseWorkerName" required placeholder="أدخل اسم العامل الذي قام بالشراء">
+                  </div>
                   <div class="form-group">
                       <label for="purchaseDescription">وصف الشراء</label>
                       <input type="text" id="purchaseDescription" required placeholder="مثال: شراء دهانات ساتيني">
@@ -826,6 +1062,44 @@
       </div>
   </div>
 
+  <!-- *** إضافة: نافذة منبثقة لإضافة/تعديل الملاحظات *** -->
+  <div id="noteModal" class="modal-container modal-hidden">
+      <div class="modal-backdrop" data-action="close-modal"></div>
+      <div class="modal-content">
+          <div class="modal-header">
+              <h3 id="noteModalTitle">إضافة ملاحظة جديدة</h3>
+              <button class="close-btn" data-action="close-modal">&times;</button>
+          </div>
+          <div class="modal-body">
+              <form id="noteForm">
+                  <input type="hidden" id="noteId">
+                  <div class="form-group">
+                      <label for="noteTitle">العنوان</label>
+                      <input type="text" id="noteTitle" placeholder="عنوان الملاحظة...">
+                  </div>
+                  <div class="form-group">
+                      <label for="noteContent">المحتوى</label>
+                      <textarea id="noteContent" rows="6" placeholder="اكتب ملاحظتك هنا..."></textarea>
+                  </div>
+                  <div class="form-group">
+                      <label>اللون</label>
+                      <div class="color-swatches">
+                          <div class="swatch selected" data-color="#3b82f6" style="background: #3b82f6;"></div>
+                          <div class="swatch" data-color="#10b981" style="background: #10b981;"></div>
+                          <div class="swatch" data-color="#f59e0b" style="background: #f59e0b;"></div>
+                          <div class="swatch" data-color="#ef4444" style="background: #ef4444;"></div>
+                          <div class="swatch" data-color="#64748b" style="background: #64748b;"></div>
+                      </div>
+                  </div>
+                  <div class="form-actions">
+                      <button type="submit" class="btn">حفظ</button>
+                      <button type="button" class="btn" id="deleteNoteBtn" style="display: none; background-color: #ef4444;">حذف</button>
+                  </div>
+              </form>
+          </div>
+      </div>
+  </div>
+
 
 
 
@@ -859,8 +1133,8 @@ function getThemeColors() {
   const firestore = firebase.firestore();
 
   const db = new Dexie('decorManagerDB_worker');
-  // *** تحديث: توحيد إصدار قاعدة البيانات إلى 25 ليتوافق مع التطبيق الرئيسي ***
-  db.version(25).stores({
+  // *** إصلاح: زيادة رقم الإصدار إلى 26 لحل مشكلة "Upgrade blocked" بعد إضافة جدول الملاحظات ***
+  db.version(26).stores({
       workers: '++id, name, pin, settlements',
       projects: '++id, name, status, builderName',
       suppliers: '++id, name',
@@ -869,7 +1143,9 @@ function getThemeColors() {
       // *** إصلاح: استخدام firestoreId كمفتاح أساسي وتحديد الفهارس اللازمة ***
       purchases: 'firestoreId, workerId, status',
       app_settings: 'key',
-      messages: '++id, timestamp' // *** إضافة: جدول للرسائل ***
+      messages: '++id, timestamp',
+      notes: '++id, updatedAt', // *** إضافة: جدول لتخزين الملاحظات ***
+      reports: 'firestoreId, workerId, status, date' // *** إضافة: جدول للبلاغات ***
   });
 
   let isDbOpen = false;
@@ -892,16 +1168,19 @@ function getThemeColors() {
     currentView: { name: 'home', params: {} },
     projects: [],
     workers: [],
+    notes: [], // *** إضافة: حالة لتخزين الملاحظات ***
     suppliers: [],
     debts: [],
     expenses: [],
     hasNewSync: false, // *** إضافة: حالة لتتبع وجود مزامنة جديدة ***
     purchases: [], // *** إضافة: حالة لتخزين المشتريات ***
     isSubscribed: false, // *** إضافة: حالة لتتبع اشتراك المدير ***
+    reports: [], // *** إصلاح: تهيئة مصفوفة البلاغات لمنع الخطأ ***
     messages: [], // *** إضافة: حالة لتخزين الرسائل ***
     hasNewMessages: false, // *** إضافة: حالة لتتبع الرسائل الجديدة ***
     showAllMessages: false, // *** إضافة: حالة لعرض كل الرسائل أو بعضها ***
     tempAttendanceData: {},
+    hasNewReportUpdates: false, // *** إضافة: حالة لتتبع تحديثات البلاغات ***
   };
 
   const appModules = [
@@ -911,9 +1190,26 @@ function getThemeColors() {
       description: 'قائمة العمال وأرصدتهم الحالية',
       icon: 'fa-users',
       color: 'linear-gradient(135deg,#f97316,#f59e0b)',
-      hasNotification: () => state.hasNewSync // *** إضافة: دالة لتحديد ظهور الإشعار ***
+      hasNotification: () => state.hasNewSync
     },
-    { key: 'purchases', title: 'سجل المشتريات', description: 'تسجيل مشتريات المواد والأدوات', icon: 'fa-shopping-cart', color: 'linear-gradient(135deg,#8b5cf6,#6366f1)' }
+    // *** إضافة: وحدة جديدة لإرسال البلاغات ***
+    {
+      key: 'reports', // *** تعديل: تغيير المفتاح لينتقل إلى واجهة البلاغات
+      title: 'تبليغ المدير',
+      description: 'إرسال بلاغ عن غياب، تأخير، أو ملاحظة',
+      icon: 'fa-flag', // *** إضافة: دالة التحقق من وجود تحديثات جديدة للبلاغات ***
+      hasNotification: () => state.hasNewReportUpdates,
+      color: 'linear-gradient(135deg,#3b82f6,#2563eb)'
+    },
+    // *** إضافة: وحدة جديدة للملاحظات السريعة ***
+    {
+      key: 'notes',
+      title: 'ملاحظات سريعة',
+      description: 'لتسجيل أفكارك وملاحظاتك الشخصية',
+      icon: 'fa-sticky-note',
+      color: 'linear-gradient(135deg,#ec4899,#d946ef)'
+    },
+    { key: 'purchases', title: 'سجل المشتريات', description: 'تسجيل مشتريات المواد والأدوات', icon: 'fa-shopping-cart', color: 'linear-gradient(135deg,#8b5cf6,#6366f1)', hasNotification: () => false },
   ];
 
   const themes = {
@@ -937,12 +1233,14 @@ function getThemeColors() {
   async function loadState() {
       state.workers = await db.workers.toArray();
       state.projects = await db.projects.toArray();
+      state.notes = await db.notes.toArray(); // *** إضافة: تحميل الملاحظات ***
       state.suppliers = await db.suppliers.toArray();
       state.debts = await db.debts.toArray();
       state.expenses = await db.expenses.toArray();
       state.purchases = await db.purchases.toArray();
       state.messages = await db.messages.toArray();
       state.currentView = { name: 'home', params: {} };
+      state.reports = await db.reports.toArray(); // *** إصلاح: تحميل البلاغات المحفوظة عند بدء التشغيل ***
   }
 
   async function applyThemeSet(themeName) {
@@ -988,6 +1286,7 @@ function getThemeColors() {
     try {
         state.workers = await db.workers.toArray();
         state.projects = await db.projects.toArray();
+        state.notes = await db.notes.toArray(); // *** إضافة: جلب الملاحظات ***
         state.purchases = await db.purchases.toArray();
         state.suppliers = await db.suppliers.toArray();
         state.debts = await db.debts.toArray();
@@ -1012,19 +1311,34 @@ function getThemeColors() {
             case 'themes':        content = getThemesView(); break;
             case 'about':         content = getAboutView(); break;
             case 'purchases':     content = getPurchasesView(); break; // *** إضافة: واجهة سجل المشتريات ***
+            case 'notes':         content = getNotesView(); break; // *** إضافة: واجهة الملاحظات ***
+            case 'clear_cache':   content = getClearCacheView(); break; // *** إضافة: واجهة مسح الكاش ***
+            case 'reports':       content = getReportsView(); break; // *** إضافة: واجهة جديدة للبلاغات
             default:              content = `<h3>View Not Found: ${viewName}</h3>`;
         } 
         
         mainContent.innerHTML = `<div class="view-container">${content}</div>`;
         
+        if (viewName === 'clear_cache') document.getElementById('clearCacheBtn')?.addEventListener('click', handleClearCache);
+        // *** إضافة: إخفاء إشعار البلاغات عند زيارة الصفحة ***
+        if (viewName === 'reports') {
+            state.hasNewReportUpdates = false;
+            updateNotificationDots(); // تحديث الواجهة لإزالة النقطة فوراً
+        }
+
         if (viewName === 'settings') {
             document.getElementById('navigateToThemes')?.addEventListener('click', () => renderView('themes'));
+            document.getElementById('navigateToClearCache')?.addEventListener('click', () => renderView('clear_cache'));
         }
         if (viewName === 'themes') {
             mainContent.querySelectorAll('.theme-card').forEach(card => card.addEventListener('click', async (e) => {
                 await applyThemeSet(e.currentTarget.dataset.theme);
                 renderView('themes');
             }));
+        }
+        // *** إضافة: ربط زر الإضافة العائم في واجهة البلاغات ***
+        if (viewName === 'reports') {
+            document.getElementById('openReportModalBtn')?.addEventListener('click', openReportModal);
         }
         if (viewName === 'workers') {
             document.getElementById('refreshWorkersBtn')?.addEventListener('click', fetchLatestWorkLogs);
@@ -1069,6 +1383,11 @@ function getThemeColors() {
 
                 item.addEventListener('click', handler);
             });
+        }
+        // *** إضافة: ربط أحداث واجهة الملاحظات ***
+        if (viewName === 'notes') {
+            mainContent.querySelectorAll('.note-card').forEach(card => card.addEventListener('click', (e) => openNoteModal(parseInt(e.currentTarget.dataset.id))));
+            setupInlineNoteForm();
         }
         if (viewName === 'worker-details') {
             document.getElementById('backToWorkers')?.addEventListener('click', () => renderView('workers'));
@@ -1124,8 +1443,10 @@ function getThemeColors() {
       setTimeout(() => { toast.remove(); }, 3000);
   }
   function createCardHTML(m) {
+    const shouldShowDot = m.hasNotification ? m.hasNotification() : false;
     return `
       <div class="card" data-key="${m.key}">
+        <span class="notification-dot" id="notification-dot-${m.key}" style="display: ${shouldShowDot ? 'block' : 'none'};"></span>
         <div class="icon" style="background:${m.color}"><i class="fas ${m.icon}"></i></div>
         <div>
           <div style="font-weight:900; font-size: 16px;">${m.title}</div>
@@ -1133,6 +1454,25 @@ function getThemeColors() {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * *** إصلاح: إضافة الدالة المساعدة المفقودة لتوحيد صيغ التواريخ ***
+   * تتعامل هذه الدالة مع أنواع التواريخ المختلفة (Firestore Timestamp, JS Date, etc.)
+   * @param {any} ts - الطابع الزمني المراد توحيده
+   * @returns {number} - الطابع الزمني بصيغة ميلي ثانية
+   */
+  function normalizeTimestamp(ts) {
+      if (!ts) return 0;
+      // إذا كان طابع زمني من Firestore
+      if (typeof ts.toDate === 'function') return ts.toDate().getTime();
+      // إذا كان كائن تاريخ JavaScript
+      if (ts instanceof Date) return ts.getTime();
+      // إذا كان رقم (timestamp)
+      if (typeof ts === 'number') return ts;
+      // محاولة تحويله كنص
+      const parsed = Date.parse(ts);
+      return isNaN(parsed) ? 0 : parsed;
   }
 
   function getHomeView() {
@@ -1405,6 +1745,18 @@ function getThemeColors() {
                 <i class="fas fa-chevron-left" style="color: var(--muted); align-self: center;"></i>
             </div>
         </div>
+
+        <!-- *** إضافة: بطاقة مسح ذاكرة التخزين المؤقت *** -->
+        <div id="navigateToClearCache" class="card" style="align-items:flex-start; text-align:right; flex-direction: row; justify-content: space-between; margin-top: 12px; border-top: 2px solid #f43f5e;">
+            <div style="display:flex; align-items:center; gap: 12px;">
+                <div class="icon" style="width:48px; height:48px; background: linear-gradient(135deg,#f43f5e,#be123c); font-size: 20px; margin-bottom: 0;"><i class="fas fa-broom"></i></div>
+                <div>
+                    <div style="font-weight:700; color: #f43f5e;">مسح ذاكرة التخزين المؤقت</div>
+                    <div style="font-size:13px; color: var(--muted)">حل المشاكل وإعادة تحميل البيانات</div>
+                </div>
+            </div>
+            <i class="fas fa-chevron-left" style="color: var(--muted); align-self: center;"></i>
+        </div>
     `;
   }
 
@@ -1448,6 +1800,44 @@ function getThemeColors() {
             ${darkThemesHTML}
         </div>
     `;
+  }
+
+  // *** إضافة: دالة لإنشاء واجهة مسح الكاش ***
+  function getClearCacheView() {
+    return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
+            <button onclick="renderView('settings')" class="btn icon-btn" title="العودة للإعدادات"><i class="fas fa-arrow-right"></i></button>
+            <h3 style="margin:0; font-weight:800; color: #f43f5e; text-align: right; flex-grow: 1;">مسح ذاكرة التخزين المؤقت</h3>
+        </div>
+
+        <div class="card" style="cursor:default; transform:none; padding: 20px; align-items: center; text-align: center; border-color: #f43f5e;">
+            <div style="font-size: 48px; color: #f43f5e; margin-bottom: 16px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <h4 style="margin: 0 0 8px; font-size: 18px;">إجراء مهم</h4>
+            <p style="color: var(--muted); line-height: 1.7; max-width: 400px; margin-bottom: 24px;">
+                <strong>نصيحة:</strong> استخدم هذه الميزة إذا واجهت مشاكل في عرض البيانات أو سلوكاً غير متوقع في التطبيق.
+                سيؤدي مسح الكاش إلى حذف البيانات المؤقتة وإجبار التطبيق على إعادة تحميل أحدث المعلومات من السحابة عند التحديث.
+                <strong>لن يتم حذف بياناتك الأساسية.</strong>
+            </p>
+            <button id="clearCacheBtn" class="btn" style="background-color: #f43f5e; padding: 10px 24px; font-size: 16px; gap: 8px;">
+                <i class="fas fa-broom" style="margin-left: 8px;"></i> نعم، أفهم وأريد مسح الكاش
+            </button>
+        </div>
+    `;
+  }
+
+  // *** إضافة: دالة لتنفيذ مسح الكاش ***
+  function handleClearCache() {
+      openConfirmModal('هل أنت متأكد من رغبتك في مسح ذاكرة التخزين المؤقت؟', () => {
+          closeConfirmModal();
+          showToast('جاري مسح الكاش...');
+          // حذف البيانات المؤقتة من localStorage
+          const user = auth.currentUser;
+          if (user) localStorage.removeItem(`lastSeenUpdate_${user.uid}`);
+          localStorage.removeItem('lastSeenMessageTimestamp');
+          // لا نحذف deviceId لأنه يجب أن يكون دائماً
+          
+          setTimeout(() => { location.reload(); }, 1500);
+      });
   }
 
   // *** إضافة: واجهة مبدئية لسجل المشتريات للعامل ***
@@ -1529,6 +1919,79 @@ function getThemeColors() {
         ${purchasesListHTML}
         </div>
     `;
+  }
+
+  // *** إضافة: دالة لإنشاء واجهة الملاحظات (منسوخة من تطبيق المدير مع تبسيط) ***
+  function getNotesView() {
+    // Sort notes by last updated time, descending
+    const notesListHTML = state.notes && state.notes.length > 0
+        ? state.notes.sort((a, b) => b.updatedAt - a.updatedAt).map(note => `
+            <div class="note-card" data-id="${note.id}" style="border-top-color: ${note.color || 'var(--primary)'};">
+                <div style="padding-bottom: 8px;">
+                    <h4 class="note-title">${note.title || 'ملاحظة بدون عنوان'}</h4>
+                    <p class="note-content">${note.content ? note.content.replace(/\n/g, '<br>') : 'لا يوجد محتوى'}</p>
+                </div>
+                <div class="note-footer">
+                    <span>آخر تحديث: ${new Date(note.updatedAt).toLocaleDateString('ar-DZ')}</span>
+                </div>
+            </div>
+        `).join('')
+        : ``;
+
+    const emptyStateHTML = !notesListHTML ? `<p style="text-align:center; color:var(--muted); padding: 20px;">لا توجد ملاحظات. أضف ملاحظتك الأولى!</p>` : '';
+
+    return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
+            <button onclick="renderView('home')" class="btn icon-btn" title="العودة"><i class="fas fa-arrow-right"></i></button>
+            <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">ملاحظات سريعة</h3>
+        </div>
+        
+        <!-- Inline Note Form -->
+        <div id="addNoteFormContainer" class="add-note-container">
+            <input type="text" id="newNoteTitle" placeholder="عنوان..." style="display: none;">
+            <textarea id="newNoteContent" placeholder="اكتب ملاحظة..." rows="1"></textarea>
+            <div id="newNoteActions" class="new-note-actions" style="display: none;">
+                <div class="color-swatches">
+                    <div class="swatch selected" data-color="#3b82f6" style="background: #3b82f6;"></div>
+                    <div class="swatch" data-color="#10b981" style="background: #10b981;"></div>
+                    <div class="swatch" data-color="#f59e0b" style="background: #f59e0b;"></div>
+                    <div class="swatch" data-color="#ef4444" style="background: #ef4444;"></div>
+                    <div class="swatch" data-color="#64748b" style="background: #64748b;"></div>
+                </div>
+                <button id="saveNewNoteBtn" class="btn">حفظ</button>
+            </div>
+        </div>
+
+        <div class="notes-grid">
+            ${notesListHTML}
+        </div>
+        ${emptyStateHTML}
+    `;
+  }
+
+  // *** إضافة: دالة لإدارة نموذج الإضافة المباشر للملاحظات ***
+  function setupInlineNoteForm() {
+      const container = document.getElementById('addNoteFormContainer');
+      const titleInput = document.getElementById('newNoteTitle');
+      const contentTextarea = document.getElementById('newNoteContent');
+      const actionsDiv = document.getElementById('newNoteActions');
+      const saveBtn = document.getElementById('saveNewNoteBtn');
+      let selectedColor = '#3b82f6';
+
+      const expandForm = () => { titleInput.style.display = 'block'; actionsDiv.style.display = 'flex'; contentTextarea.rows = 3; };
+      const collapseForm = () => { titleInput.style.display = 'none'; actionsDiv.style.display = 'none'; contentTextarea.rows = 1; titleInput.value = ''; contentTextarea.value = ''; };
+
+      contentTextarea.addEventListener('focus', expandForm);
+
+      actionsDiv.querySelectorAll('.swatch').forEach(swatch => {
+          swatch.addEventListener('click', () => {
+              actionsDiv.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+              swatch.classList.add('selected');
+              selectedColor = swatch.dataset.color;
+          });
+      });
+
+      saveBtn.addEventListener('click', async () => { if (contentTextarea.value.trim() === '' && titleInput.value.trim() === '') { collapseForm(); return; } await db.notes.add({ title: titleInput.value, content: contentTextarea.value, color: selectedColor, updatedAt: Date.now() }); collapseForm(); renderView('notes'); });
   }
 
   /**
@@ -1725,12 +2188,13 @@ function getThemeColors() {
       }
       
       const purchaseData = {
+          // *** تعديل: جلب اسم العامل من الحقل الجديد ***
+          workerName: document.getElementById('purchaseWorkerName').value,
           description: document.getElementById('purchaseDescription').value,
           amount: parseFloat(document.getElementById('purchaseAmount').value),
           date: document.getElementById('purchaseDate').value,
           notes: document.getElementById('purchaseNotes').value,
           workerId: user.uid,
-          workerName: document.getElementById('userDisplayName')?.textContent || user.email,
           status: 'pending'
       };
 
@@ -1752,7 +2216,7 @@ function getThemeColors() {
 
           const newPurchaseRecord = {
               ...purchaseData,
-              firestoreId: docRef.id,
+              firestoreId: docRef.id, // *** تعديل: التأكد من أن workerName من الحقل الجديد يتم حفظه محلياً أيضاً ***
               createdAt: new Date() // Use local date for immediate sorting
           };
 
@@ -1857,14 +2321,21 @@ function getThemeColors() {
    * *** تعديل: دالة جديدة لرسم الرسائل مع منطق "عرض الكل" ***
    */
   function renderMessages() {
+      const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
       const container = document.getElementById('messagesListContainer');
-      const sortedMessages = state.messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
+      // *** إصلاح: تصفية الرسائل التي انتهت صلاحيتها قبل عرضها ***
+      const validMessages = state.messages.filter(msg => {
+          const timestampMs = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
+          return timestampMs > fortyEightHoursAgo;
+      });
+  
+      const sortedMessages = validMessages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  
       if (sortedMessages.length === 0) {
           container.innerHTML = `<p style="text-align:center; color:var(--muted);">لا توجد رسائل واردة.</p>`;
           return;
       }
-
+  
       const messagesToDisplay = state.showAllMessages ? sortedMessages : sortedMessages.slice(0, 3);
 
       let messagesHTML = messagesToDisplay.map(msg => {
@@ -1903,10 +2374,20 @@ function getThemeColors() {
   }
 
   function updateNotificationDots() {
+      // *** إصلاح: تحديث جميع نقاط الإشعارات في التطبيق بغض النظر عن الواجهة الحالية ***
+      // تحديث إشعار الرسائل في الشريط العلوي
       const messagesDot = document.getElementById('messagesNotificationDot');
       if (messagesDot) {
           messagesDot.style.display = state.hasNewMessages ? 'block' : 'none';
       }
+  
+      // تحديث نقاط الإشعارات على بطاقات الوحدات
+      appModules.forEach(module => {
+          document.querySelectorAll(`.card[data-key="${module.key}"] .notification-dot`).forEach(dot => {
+              const shouldShow = typeof module.hasNotification === 'function' && module.hasNotification();
+              dot.style.display = shouldShow ? 'block' : 'none';
+          });
+      });
   }
 
 
@@ -2176,34 +2657,123 @@ function getThemeColors() {
         }
     });
 
-    // *** إضافة: معالج حدث لزر ونافذة الرسائل ***
     document.getElementById('messagesBtn')?.addEventListener('click', openMessagesModal);
     document.getElementById('messagesModal')?.addEventListener('click', (e) => {
         if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
-            // *** تعديل: إعادة تعيين حالة عرض كل الرسائل عند إغلاق النافذة ***
             state.showAllMessages = false;
             closeModal('messagesModal');
         }
     });
 
+    const submitReportBtn = document.getElementById('submitReportBtn');
+    if (submitReportBtn && !submitReportBtn.hasAttribute('data-listener-attached')) {
+        submitReportBtn.setAttribute('data-listener-attached', 'true');
+        submitReportBtn.addEventListener('click', handleReportFormSubmit);
+    }
+
+    document.getElementById('reportModal')?.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
+            closeModal('reportModal');
+        }
+    });
+
+    document.getElementById('workerSelectionContainer')?.addEventListener('click', (e) => {
+        const card = e.target.closest('.worker-selection-card');
+        if (!card) return;
+        const { workerId, workerName, hasPin } = card.dataset;
+        document.getElementById('reportForWorkerId').value = workerId;
+        document.getElementById('reportForWorkerName').value = workerName;
+        if (hasPin === 'true') {
+            document.getElementById('reportStep1').style.display = 'none';
+            document.getElementById('reportStep2').style.display = 'block';
+            document.getElementById('reportPinWorkerName').textContent = workerName;
+            document.getElementById('reportModalTitle').textContent = `التحقق من هوية ${workerName}`;
+        } else {
+            document.getElementById('reportStep1').style.display = 'none';
+            document.getElementById('reportStep3').style.display = 'block';
+            document.getElementById('reportModalTitle').innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-file-alt" style="color: var(--muted);"></i>
+                    <span>تفاصيل البلاغ عن ${workerName}</span>
+                </div>`;
+        }
+    });
+
+    document.getElementById('reportBackToStep1')?.addEventListener('click', () => {
+        document.getElementById('reportStep2').style.display = 'none';
+        document.getElementById('reportStep1').style.display = 'block';
+        document.getElementById('reportModalTitle').textContent = 'إرسال بلاغ';
+    });
+
+    document.getElementById('reportVerifyPin')?.addEventListener('click', () => {
+        const workerId = parseInt(document.getElementById('reportForWorkerId').value);
+        const worker = state.workers.find(w => w.id === workerId);
+        const enteredPin = document.getElementById('reportPinInput').value;
+
+        if (worker && worker.pin === enteredPin) {
+            document.getElementById('reportStep2').style.display = 'none';
+            document.getElementById('reportStep3').style.display = 'block';
+            document.getElementById('reportModalTitle').innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-file-alt" style="color: var(--muted);"></i>
+                    <span>تفاصيل البلاغ عن ${worker.name}</span>
+                </div>`;
+        } else {
+            showCustomToast('رمز PIN غير صحيح!', 'error');
+        }
+    });
+
+    document.querySelector('.report-type-selector')?.addEventListener('click', (e) => {
+        const card = e.target.closest('.report-type-card');
+        if (!card) return;
+        document.querySelectorAll('.report-type-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        document.getElementById('reportType').value = card.dataset.type;
+        handleReportTypeChange();
+    });
+
+    const purchaseForm = document.getElementById('purchaseForm');
+    if (purchaseForm) {
+        purchaseForm.addEventListener('submit', handlePurchaseFormSubmit);
+    }
+    document.getElementById('purchaseModal')?.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) closeModal('purchaseModal');
+    });
+    document.getElementById('purchaseDetailsModal')?.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
+            closeModal('purchaseDetailsModal');
+        }
+    });
+
+    // *** إصلاح جذري: استخدام Event Delegation لجميع الأحداث داخل المحتوى الرئيسي ***
+    // هذا يمنع تراكم المستمعين ويحل مشكلة إعادة التشغيل.
     mainContent.addEventListener('click', (e) => {
         const target = e.target;
 
-        const moduleCard = target.closest('.card[data-key]:not([style*="pointer-events: all;"])');
-        if (moduleCard && !target.closest('.purchase-delete-btn')) {
-            // *** إضافة: التحقق من الاشتراك قبل فتح أي ميزة ***
+        // 1. النقر على بطاقات الوحدات في الصفحة الرئيسية
+        const moduleCard = target.closest('.card[data-key]');
+        if (moduleCard) {
             if (auth.currentUser && !state.isSubscribed) {
-                // *** تعديل: السماح بالوصول إلى سجل العمال ولكن ليس المشتريات ***
                 if (moduleCard.dataset.key === 'purchases') {
                     showCustomToast('هذه الميزة تتطلب اشتراكاً فعالاً من المدير.', 'error');
                     return;
                 }
             }
-
-            renderView(moduleCard.dataset.key, {}); // فتح الواجهة فقط إذا كان مشتركاً
+            renderView(moduleCard.dataset.key, {});
             return;
         }
 
+        // 2. النقر على البلاغات المحمية لفتح نافذة PIN
+        const protectedReport = target.closest('.protected-report[data-requires-pin="true"]');
+        if (protectedReport) {
+            const workerId = parseInt(protectedReport.dataset.workerId);
+            const reportId = protectedReport.dataset.reportId;
+            const worker = state.workers.find(w => w.id === workerId);
+            if (worker) {
+                openReportPinVerifyModal(reportId, worker.id, worker.name);
+            }
+            return;
+        }
         // Delegation: فتح تفاصيل السجل عند الضغط على عنصر السجل
         const purchaseItem = target.closest('[data-action="view-purchase-details"]');
         if (purchaseItem && !target.closest('.purchase-delete-btn')) {
@@ -2219,14 +2789,6 @@ function getThemeColors() {
         }
     });
 
-    // Purchase form listener (prevent default navigation/reload)
-    const purchaseForm = document.getElementById('purchaseForm');
-    if (purchaseForm) {
-        purchaseForm.addEventListener('submit', handlePurchaseFormSubmit);
-    }
-    document.getElementById('purchaseModal')?.addEventListener('click', (e) => {
-        if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) closeModal('purchaseModal');
-    });
     // *** إصلاح: إضافة معالج أحداث لإغلاق نافذة تفاصيل الشراء ***
     document.getElementById('purchaseDetailsModal')?.addEventListener('click', (e) => {
         if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
@@ -2419,7 +2981,7 @@ function getThemeColors() {
               return;
           }
           const latestLog = doc.data();
-          const workersData = latestLog.workers;
+          let workersData = latestLog.workers;
 
           // *** إصلاح: التحقق من أن البيانات المستلمة هي مصفوفة صالحة قبل المتابعة ***
           if (!Array.isArray(workersData)) {
@@ -2427,6 +2989,13 @@ function getThemeColors() {
               return;
           }
 
+          // *** إصلاح: التأكد من أن كل عامل لديه حقل `uid` ***
+          // بيانات المدير لا تحتوي على `uid`، لذلك نضيفه هنا.
+          workersData = workersData.map(worker => {
+              // إذا كان العامل لديه `id` ولكن ليس لديه `uid`، نعتبر أن `uid` هو نفسه `id`
+              if (worker.id && !worker.uid) worker.uid = worker.id;
+              return worker;
+          });
           // *** تعديل: إخفاء نقطة الإشعار وحفظ وقت آخر تحديث ناجح ***
           state.hasNewSync = false;
           const lastUpdateTime = latestLog.timestamp?.toDate().getTime();
@@ -2511,21 +3080,327 @@ function getThemeColors() {
       }
   }
 
+  // *** إضافة: دوال خاصة بنافذة البلاغات ***
+  function openReportModal() {
+      if (!auth.currentUser) {
+          showCustomToast('يجب تسجيل الدخول لإرسال بلاغ.', 'error');
+          return;
+      }
+      const form = document.getElementById('reportForm');
+      form.reset();
+
+      // إظهار الخطوة الأولى وإخفاء الباقي
+      document.getElementById('reportStep1').style.display = 'block';
+      document.getElementById('reportStep2').style.display = 'none';
+      document.getElementById('reportStep3').style.display = 'none';
+      document.getElementById('reportModalTitle').textContent = 'إرسال بلاغ';
+
+      openModal('reportModal');
+      // *** إضافة: تعيين تاريخ اليوم تلقائياً لحقل التاريخ ***
+      document.getElementById('reportDate').valueAsDate = new Date();
+      handleReportTypeChange(); // استدعاء الدالة مرة واحدة لضبط الحالة الأولية
+
+      // *** تحسين: بناء بطاقات اختيار العمال ***
+      const workerSelectionContainer = document.getElementById('workerSelectionContainer');
+      workerSelectionContainer.innerHTML = state.workers.map(w => `
+        <div class="worker-selection-card" data-worker-id="${w.id}" data-worker-name="${w.name}" data-has-pin="${w.pin ? 'true' : 'false'}">
+            <div class="icon" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg,#f97316,#f59e0b); font-size: 24px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-user"></i>
+            </div>
+            <span style="font-weight: 700; font-size: 14px;">${w.name}</span>
+        </div>
+      `).join('');
+  }
+
+  // *** إضافة: دالة لإدارة حقول التاريخ بناءً على نوع البلاغ ***
+  function handleReportTypeChange() {
+      const type = document.getElementById('reportType').value; // القيمة تأتي من الحقل المخفي الآن
+      const singleDateGroup = document.getElementById('reportSingleDateGroup');
+      const dateRangeGroup = document.getElementById('reportDateRangeGroup');
+
+      if (type === 'طلب إجازة') {
+          singleDateGroup.style.display = 'none';
+          dateRangeGroup.style.display = 'block';
+      } else {
+          singleDateGroup.style.display = 'block';
+          dateRangeGroup.style.display = 'none';
+          // For "complaint", change the placeholder text
+          const noteTextarea = document.getElementById('reportNote');
+          noteTextarea.placeholder = (type === 'شكوى') ? 'اكتب سبب الشكوى هنا...' : 'اشرح سبب البلاغ...';
+      }
+  }
+
+  async function handleReportFormSubmit(e) {
+      e.preventDefault();
+      const user = auth.currentUser;
+      if (!user) {
+          showCustomToast('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى.', 'error');
+          return;
+      }
+
+      // *** تعديل: جلب البيانات من الحقول المخفية التي تم تعيينها في الخطوات السابقة ***
+      const reportForWorkerLocalId = document.getElementById('reportForWorkerId').value;
+      const reportForWorkerName = document.getElementById('reportForWorkerName').value;
+
+      // *** إصلاح: البحث عن العامل في الحالة للحصول على uid الخاص به ***
+      const targetWorker = state.workers.find(w => w.id == reportForWorkerLocalId);
+
+      if (!targetWorker || !targetWorker.uid) {
+          showCustomToast('خطأ: لم يتم تحديد العامل. يرجى البدء من جديد.', 'error');
+          return;
+      }
+
+      const reportForWorkerUid = targetWorker.uid;
+      // *** تعديل: منطق ذكي لجلب هوية المدير ***
+      // 1. جلب مستند المستخدم الحالي (الذي يرسل البلاغ)
+      const userDoc = await firestore.collection('users').doc(user.uid).get();
+      // 2. إذا كان للمستخدم حقل `managerUid` (أي أنه عامل)، استخدمه.
+      //    إذا لم يكن لديه (أي أنه مدير)، استخدم `uid` الخاص به كمدير للبلاغ.
+      const managerUid = userDoc.data()?.managerUid || user.uid;
+
+      if (!managerUid) { // هذا التحقق سيفشل فقط في حالات نادرة جداً
+          showCustomToast('لا يمكن إرسال البلاغ. لم يتم ربط حسابك (أنت) بمدير.', 'error');
+          return;
+      }
+
+      const reportType = document.getElementById('reportType').value;
+      const reportData = {
+          workerId: reportForWorkerUid, // *** إصلاح: استخدام uid العامل المستهدف
+          workerName: reportForWorkerName, // اسم العامل الذي يتم التبليغ عنه
+          managerUid: managerUid,
+          submittedBy: user.uid, // هوية من أرسل البلاغ
+          submittedByName: document.getElementById('userDisplayName')?.textContent || user.email,
+          type: reportType,
+          note: document.getElementById('reportNote').value,
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      // *** إضافة: منطق حفظ التواريخ بناءً على نوع البلاغ ***
+      if (reportType === 'طلب إجازة') {
+          reportData.startDate = document.getElementById('reportStartDate').value;
+          reportData.endDate = document.getElementById('reportEndDate').value;
+          reportData.date = reportData.startDate; // استخدام تاريخ البدء كتاريخ أساسي
+      } else {
+          reportData.date = document.getElementById('reportDate').value;
+      }
+
+      try {
+          // *** إصلاح: إرسال البلاغ إلى Firestore فقط. ***
+          // سيقوم مستمع onSnapshot بمعالجة الإضافة إلى قاعدة البيانات المحلية والحالة تلقائياً.
+          await firestore.collection('reports').add(reportData);
+
+          showToast('تم إرسال البلاغ إلى المدير بنجاح ✅');
+          closeModal('reportModal');
+          // لا حاجة لإعادة رسم الواجهة يدوياً، المستمع سيقوم بذلك.
+      } catch (error) {
+          console.error("Error sending report:", error);
+          showCustomToast('فشل إرسال البلاغ. تحقق من اتصالك بالإنترنت.', 'error');
+      }
+  }
+
+  // *** إضافة: دالة لإنشاء واجهة البلاغات ***
+  function getReportsView() {
+    const reportsListHTML = state.reports && state.reports.length > 0
+        // *** تعديل: فرز البلاغات حسب تاريخ الإنشاء (الأحدث أولاً) ***
+        ? state.reports.sort((a, b) => {
+            // استخدام normalizeTimestamp لضمان المقارنة الصحيحة
+            const timeA = normalizeTimestamp(a.createdAt);
+            const timeB = normalizeTimestamp(b.createdAt);
+            return timeB - timeA;
+        })
+        .map(report => {
+            const statusStyles = {
+                pending: { text: 'قيد المراجعة', color: '#f59e0b' },
+                approved: { text: 'تمت الموافقة', color: '#10b981' },
+                rejected: { text: 'مرفوض', color: '#ef4444' }
+            };
+            const status = statusStyles[report.status] || { text: report.status, color: '#64748b' };
+            
+            // *** إضافة: التحقق مما إذا كان البلاغ يتطلب PIN ***
+            const targetWorker = state.workers.find(w => w.uid == report.workerId);
+            const requiresPin = targetWorker && targetWorker.pin;
+            const isProtected = requiresPin && !report.unlocked; // Check if it's protected and not yet unlocked in this session
+
+            const cardClasses = `card ${isProtected ? 'protected-report' : ''}`;
+            const cardDataAttributes = isProtected ? `data-requires-pin="true" data-worker-id="${targetWorker.id}" data-report-id="${report.firestoreId}"` : '';
+            // *** تحسين: إضافة أيقونات ونصوص مختلفة حسب نوع البلاغ ***
+            const reportTypeDetails = {
+                'غياب': { icon: 'fa-calendar-times', text: 'بلاغ غياب' },
+                'طلب إجازة': { icon: 'fa-umbrella-beach', text: 'طلب إجازة' },
+                'شكوى': { icon: 'fa-gavel', text: 'شكوى' }
+            };
+            const typeInfo = reportTypeDetails[report.type] || { icon: 'fa-flag', text: 'بلاغ' };
+
+            // *** إضافة: إخفاء عنوان البلاغ إذا كان محمياً ***
+            const reportTitle = isProtected
+                ? `${typeInfo.text.split(' ')[0]} عن: *****`
+                : `${typeInfo.text} عن: ${report.workerName}`;
+            const adminNoteHTML = report.adminNote ? `
+                <div style="background: var(--bg); padding: 10px; border-radius: 8px; margin-top: 12px; border-right: 3px solid var(--accent);">
+                    <div style="font-size: 13px; color: var(--muted); font-weight: 700; margin-bottom: 4px;">ملاحظة المدير:</div>
+                    <p style="margin: 0; font-size: 14px; line-height: 1.6;">${report.adminNote}</p>
+                </div>
+            ` : '';
+
+            const deleteButtonHTML = (report.status === 'approved' || report.status === 'rejected') ? `
+                <button class="btn icon-btn ghost report-delete-btn" data-id="${report.firestoreId}" title="حذف البلاغ من سجلي" style="width: 32px; height: 32px; font-size: 14px; color: #ef4444; border: none; background: transparent;">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            ` : '';
+
+            // *** تحسين: عرض التاريخ بشكل أفضل ***
+            const dateDisplay = report.type === 'طلب إجازة'
+                ? `<div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end;"><span style="font-weight: 700;">${new Date(report.startDate).toLocaleDateString('ar-DZ')}</span> <i class="fas fa-arrow-left" style="font-size: 10px;"></i> <span style="font-weight: 700;">${new Date(report.endDate).toLocaleDateString('ar-DZ')}</span></div>`
+                : `<span style="font-weight: 700;">${new Date(report.date).toLocaleDateString('ar-DZ', {dateStyle: 'long'})}</span>`;
+
+            return `
+            <div class="${cardClasses}" ${cardDataAttributes} style="align-items: stretch; text-align: right; margin-bottom: 12px; padding: 16px; cursor: ${isProtected ? 'pointer' : 'default'}; transform: none; border-right: 4px solid ${status.color};">
+                <div class="report-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
+                        <i class="fas ${typeInfo.icon}" style="color: var(--muted); font-size: 18px;"></i>
+                        <span style="font-weight: 700; font-size: 16px;">${reportTitle}</span>
+                    </div>
+                    <!-- *** إصلاح: وضع زر الحذف والشارة في حاوية واحدة لمنع التداخل *** -->
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        ${deleteButtonHTML}
+                        <span class="status-badge" style="background-color: ${status.color};">${status.text}</span>
+                    </div>
+                </div>
+                <div class="report-content">
+                    <p style="margin: 0 0 12px; color: var(--muted); line-height: 1.6;">${report.note}</p>
+                    ${adminNoteHTML}
+                </div>
+                <div class="report-footer" style="font-size: 13px; color: var(--muted); text-align: left; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                     ${dateDisplay}
+                </div>
+                ${isProtected ? `
+                    <div class="protected-overlay">
+                        <i class="fas fa-lock" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <span>محتوى محمي</span>
+                        <small>اضغط لإدخال PIN وعرض التفاصيل</small>
+                    </div>
+                ` : ''}
+            </div>
+        `}).join('')
+        : `<p style="text-align:center; color:var(--muted); padding: 20px;">لم تقم بإرسال أي بلاغات بعد.</p>`;
+
+    return `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; gap: 12px;">
+            <button onclick="renderView('home')" class="btn icon-btn" title="العودة للرئيسية"><i class="fas fa-arrow-right"></i></button>
+            <h3 style="margin:0; font-weight:800; text-align: right; flex-grow: 1;">سجل بلاغاتي</h3>
+            <button id="openReportModalBtn" class="btn icon-btn" title="إرسال بلاغ جديد">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        ${reportsListHTML}
+    `;
+  }
+
   /**
    * *** إضافة: دالة لحذف الرسائل القديمة تلقائياً ***
    * تحذف الرسائل التي مر عليها أكثر من 48 ساعة من قاعدة البيانات المحلية.
    */
   async function cleanupOldMessages() {
       try {
-          const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
-          const deletedCount = await db.messages.where('timestamp').below(fortyEightHoursAgo).delete();
-          if (deletedCount > 0) {
-              console.log(`[Cleanup] Deleted ${deletedCount} old messages.`);
-          }
+        const fortyEightHoursAgo = Date.now() - 48 * 60 * 60 * 1000;
+        const deletedCount = await db.messages.where('timestamp').below(fortyEightHoursAgo).delete();
+        if (deletedCount > 0) {
+            console.log(`[Cleanup] Deleted ${deletedCount} old messages.`);
+            // *** إصلاح: تحديث الحالة المحلية بعد الحذف مباشرة ***
+            state.messages = state.messages.filter(msg => {
+                const timestampMs = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
+                return timestampMs >= fortyEightHoursAgo;
+            });
+        }
       } catch (error) {
           console.error("Error cleaning up old messages:", error);
       }
   }
+
+
+  // *** إضافة: دوال خاصة بنافذة الملاحظات ***
+  function openNoteModal(noteId = null) {
+      const form = document.getElementById('noteForm');
+      form.reset();
+      document.getElementById('noteId').value = '';
+      document.getElementById('deleteNoteBtn').style.display = 'none';
+      
+      // Reset color swatches
+      document.querySelectorAll('#noteModal .swatch').forEach(s => s.classList.remove('selected'));
+      const defaultSwatch = document.querySelector('#noteModal .swatch[data-color="#3b82f6"]');
+      if (defaultSwatch) defaultSwatch.classList.add('selected');
+
+      if (noteId) {
+          const note = state.notes.find(n => n.id === noteId);
+          if (note) {
+              document.getElementById('noteModalTitle').textContent = 'تعديل ملاحظة';
+              document.getElementById('noteId').value = note.id;
+              document.getElementById('noteTitle').value = note.title;
+              document.getElementById('noteContent').value = note.content;
+              document.getElementById('deleteNoteBtn').style.display = 'inline-block';
+              
+              const selectedSwatch = document.querySelector(`#noteModal .swatch[data-color="${note.color}"]`);
+              if (selectedSwatch) selectedSwatch.classList.add('selected');
+          }
+      } else {
+          document.getElementById('noteModalTitle').textContent = 'إضافة ملاحظة جديدة';
+      }
+      openModal('noteModal');
+  }
+
+  function closeNoteModal() {
+      closeModal('noteModal');
+  }
+
+  async function handleNoteFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('noteId').value ? parseInt(document.getElementById('noteId').value) : null;
+      const title = document.getElementById('noteTitle').value;
+      const content = document.getElementById('noteContent').value;
+      const selectedColor = document.querySelector('#noteModal .swatch.selected').dataset.color;
+
+      const noteData = {
+          title: title,
+          content: content,
+          color: selectedColor,
+          updatedAt: Date.now()
+      };
+
+      if (id) {
+          await db.notes.update(id, noteData);
+      } else {
+          await db.notes.add(noteData);
+      }
+      
+      await renderView('notes');
+      closeNoteModal();
+  }
+
+  document.getElementById('noteModal').addEventListener('click', (e) => {
+      if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
+          closeNoteModal();
+      }
+  });
+
+  document.getElementById('noteForm').addEventListener('submit', handleNoteFormSubmit);
+
+  document.getElementById('deleteNoteBtn').addEventListener('click', () => {
+      openConfirmModal('هل أنت متأكد من حذف هذه الملاحظة؟', async () => {
+          const id = parseInt(document.getElementById('noteId').value);
+          await db.notes.delete(id);
+          await renderView('notes');
+          closeNoteModal();
+          closeConfirmModal();
+      });
+  });
+
+  document.querySelector('#noteModal .color-swatches').addEventListener('click', (e) => {
+      if (e.target.classList.contains('swatch')) {
+          document.querySelectorAll('#noteModal .swatch').forEach(s => s.classList.remove('selected'));
+          e.target.classList.add('selected');
+      }
+  });
 
   async function initializeApp() {
     if (isDbOpen) return; // Prevent re-initialization
@@ -2689,6 +3564,8 @@ function getThemeColors() {
                 const lastSeenTime = parseInt(localStorage.getItem(`lastSeenUpdate_${workerUid}`) || '0');
                 if (lastUpdateTime && lastUpdateTime > lastSeenTime) {
                     state.hasNewSync = true;
+                    // *** إصلاح: استدعاء دالة تحديث الإشعارات لضمان ظهور النقطة ***
+                    updateNotificationDots();
                     const refreshBtn = document.getElementById('refreshWorkersBtn');
                     if (refreshBtn) refreshBtn.classList.add('glow');
                 }
@@ -2771,8 +3648,166 @@ function getThemeColors() {
                 }
             });
         firestoreUnsubscribeFunctions.push(purchasesUnsubscribe);
+
+        // *** إضافة: مستمع جديد لتحديثات البلاغات الخاصة بالعامل الحالي ***
+        const reportsUnsubscribe = firestore.collection('reports')
+            .where('submittedBy', '==', workerUid) // جلب البلاغات التي أرسلها هذا العامل
+            .onSnapshot(async (querySnapshot) => {
+                // *** إصلاح جذري: توحيد منطق التحديث لضمان إعادة الرسم الفوري ***
+                let needsRender = false; // متغير لتتبع ما إذا كانت الواجهة بحاجة للتحديث
+                try {
+                    for (const change of querySnapshot.docChanges()) {
+                        const data = change.doc.data();
+                        const report = { ...data, firestoreId: change.doc.id, createdAt: normalizeTimestamp(data.createdAt) };
+                        
+                        if (change.type === 'added') {
+                            // *** إصلاح: التحقق من عدم وجود البلاغ قبل إضافته لمنع التكرار ***
+                            const exists = state.reports.some(r => r.firestoreId === report.firestoreId);
+                            if (!exists) {
+                                await db.reports.put(report);
+                                state.reports.unshift(report); // إضافة البلاغ الجديد إلى بداية المصفوفة
+                                needsRender = true;
+                            }
+                        } else if (change.type === 'modified') {
+                            await db.reports.put(report); // put يعمل كـ update إذا كان السجل موجوداً
+                            const index = state.reports.findIndex(r => r.firestoreId === report.firestoreId);
+                            if (index > -1) {
+                                state.reports[index] = report; // تحديث البلاغ الموجود
+                            } else {
+                                // إذا لم يكن موجوداً لسبب ما، أضفه
+                                state.reports.unshift(report);
+                            }
+                            needsRender = true;
+                            // *** إضافة: تفعيل نقطة الإشعار عند تحديث بلاغ ***
+                            state.hasNewReportUpdates = true;
+                            updateNotificationDots(); // تحديث الواجهة لإظهار النقطة
+
+                            showToast(`تم تحديث حالة بلاغك.`);
+                        } else if (change.type === 'removed') {
+                            await db.reports.delete(report.firestoreId);
+                            state.reports = state.reports.filter(r => r.firestoreId !== report.firestoreId); // إزالة البلاغ
+                            needsRender = true;
+                        }
+                    }
+                    // إعادة فرز المصفوفة لضمان الترتيب الصحيح دائماً
+                    state.reports.sort((a, b) => normalizeTimestamp(b.createdAt) - normalizeTimestamp(a.createdAt));
+                } catch (error) {
+                    console.error("Error processing reports snapshot for worker:", error);
+                }
+                // *** إصلاح: إذا كانت هناك تغييرات والواجهة الحالية هي سجل البلاغات، أعد رسمها ***
+                if (needsRender && state.currentView.name === 'reports') {
+                    await renderView('reports');
+                }
+            }, (error) => {
+                console.error("Error in reports snapshot listener:", error);
+            });
+        firestoreUnsubscribeFunctions.push(reportsUnsubscribe);
+
+        // *** إضافة: ربط حدث الحذف للبلاغات باستخدام Event Delegation ***
+        mainContent.addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.report-delete-btn');
+            if (deleteBtn) {
+                handleDeleteReport(deleteBtn.dataset.id);
+            }
+        });
   }
 
+  // *** إضافة: دوال خاصة بالتحقق من PIN للبلاغات ***
+  function openReportPinVerifyModal(reportId, workerId, workerName) {
+      const form = document.getElementById('reportPinVerifyForm');
+      form.reset();
+      document.getElementById('verifyPinReportId').value = reportId;
+      document.getElementById('verifyPinWorkerId').value = workerId;
+      document.getElementById('verifyPinWorkerName').textContent = workerName;
+      openModal('reportPinVerifyModal');
+  }
+
+  async function verifyReportPinAndUnlock(workerId, reportId, enteredPin) {
+      const worker = state.workers.find(w => w.id === workerId);
+      if (worker && worker.pin === enteredPin) {
+          // PIN صحيح
+          // 1. تحديث حالة البلاغ في الذاكرة (state) لفتحه
+          const report = state.reports.find(r => r.firestoreId === reportId);
+          if (report) {
+              report.unlocked = true;
+          }
+          
+          // 2. إغلاق نافذة PIN
+          closeModal('reportPinVerifyModal');
+
+          // 3. إعادة رسم الواجهة لإظهار البطاقة غير المضببة
+          await renderView('reports');
+          showToast('تم التحقق بنجاح.');
+
+      } else {
+          // PIN خاطئ
+          showCustomToast('رمز PIN غير صحيح!', 'error');
+          const pinInput = document.getElementById('verifyPinInput');
+          pinInput.style.animation = 'shake 0.5s';
+          setTimeout(() => { pinInput.style.animation = ''; }, 500);
+          pinInput.value = '';
+      }
+  }
+
+  // *** إصلاح: إضافة معالج حدث الإرسال لنافذة التحقق من PIN ***
+  document.getElementById('reportPinVerifyForm').addEventListener('submit', async (e) => {
+      e.preventDefault(); // منع إعادة تحميل الصفحة
+      const reportId = document.getElementById('verifyPinReportId').value;
+      const workerId = parseInt(document.getElementById('verifyPinWorkerId').value);
+      const enteredPin = document.getElementById('verifyPinInput').value;
+      await verifyReportPinAndUnlock(workerId, reportId, enteredPin);
+  });
+
+  document.getElementById('reportPinVerifyModal').addEventListener('click', (e) => {
+      if (e.target.dataset.action === 'close-modal' || e.target.classList.contains('modal-backdrop')) {
+          closeModal('reportPinVerifyModal');
+      }
+  });
+
+
+
+
+  // *** إضافة: دالة لحذف البلاغ محلياً ***
+  async function handleDeleteReport(firestoreId) {
+      openConfirmModal('هل أنت متأكد من حذف هذا البلاغ من سجلك؟', async () => {
+          closeConfirmModal(); // Close the confirmation modal immediately
+          const user = auth.currentUser;
+          if (!user) {
+              showCustomToast('يجب تسجيل الدخول لتنفيذ هذا الإجراء.', 'error');
+              return;
+          }
+
+          try {
+              // *** FIX: Verify ownership before deleting ***
+              // 1. Get the report document from Firestore first.
+              const reportRef = firestore.collection('reports').doc(firestoreId);
+              const reportDoc = await reportRef.get();
+
+              if (!reportDoc.exists) {
+                  throw new Error("لم يتم العثور على البلاغ.");
+              }
+
+              // 2. Check if the current user is the one who submitted it.
+              if (reportDoc.data().submittedBy !== user.uid) {
+                  throw new Error("ليس لديك صلاحية حذف هذا البلاغ.");
+              }
+
+              // 3. If the check passes, proceed with deletion.
+              await firestore.collection('reports').doc(firestoreId).delete();
+
+              // Delete from local Dexie database
+              await db.reports.delete(firestoreId);
+              // Update the state
+              state.reports = state.reports.filter(r => r.firestoreId !== firestoreId);
+              // Re-render the view
+              await renderView('reports');
+              showToast('تم حذف البلاغ بنجاح.');
+          } catch (error) {
+              console.error("Error deleting report:", error);
+              showCustomToast(`فشل حذف البلاغ: ${error.message}`, 'error');
+          }
+      });
+  }
 </script>
 
 </body>
