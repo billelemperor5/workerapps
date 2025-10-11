@@ -1181,6 +1181,7 @@ function getThemeColors() {
     showAllMessages: false, // *** إضافة: حالة لعرض كل الرسائل أو بعضها ***
     tempAttendanceData: {},
     hasNewReportUpdates: false, // *** إضافة: حالة لتتبع تحديثات البلاغات ***
+    unlockedReportIds: new Set(), // *** إصلاح جذري: قائمة بالبلاغات التي تم فتحها في هذه الجلسة ***
   };
 
   const appModules = [
@@ -3245,7 +3246,7 @@ function getThemeColors() {
             // *** إضافة: التحقق مما إذا كان البلاغ يتطلب PIN ***
             const targetWorker = state.workers.find(w => w.uid == report.workerId);
             const requiresPin = targetWorker && targetWorker.pin;
-            const isProtected = requiresPin && !report.unlocked; // Check if it's protected and not yet unlocked in this session
+            const isProtected = requiresPin && !state.unlockedReportIds.has(report.firestoreId); // *** إصلاح جذري: التحقق من القائمة الجديدة ***
 
             const cardClasses = `card ${isProtected ? 'protected-report' : ''}`;
             const cardDataAttributes = isProtected ? `data-requires-pin="true" data-worker-id="${targetWorker.id}" data-report-id="${report.firestoreId}"` : '';
@@ -3740,6 +3741,7 @@ function getThemeColors() {
   // *** إضافة: دوال خاصة بالتحقق من PIN للبلاغات ***
   function openReportPinVerifyModal(reportId, workerId, workerName) {
       const form = document.getElementById('reportPinVerifyForm');
+      if (!form) return; // Safety check
       form.reset();
       document.getElementById('verifyPinReportId').value = reportId;
       document.getElementById('verifyPinWorkerId').value = workerId;
@@ -3747,22 +3749,18 @@ function getThemeColors() {
       openModal('reportPinVerifyModal');
   }
 
+
+
   async function verifyReportPinAndUnlock(workerId, reportId, enteredPin) {
       const worker = state.workers.find(w => w.id === workerId);
       if (worker && worker.pin === enteredPin) {
-          // PIN صحيح
-          // 1. تحديث حالة البلاغ في الذاكرة (state) لفتحه
-          const report = state.reports.find(r => r.firestoreId === reportId);
-          if (report) {
-              report.unlocked = true;
-          }
-          
-          // 2. إغلاق نافذة PIN
-          closeModal('reportPinVerifyModal');
+        // *** إصلاح جذري: إضافة ID البلاغ إلى قائمة البلاغات المفتوحة ***
+        state.unlockedReportIds.add(reportId);
 
-          // 3. إعادة رسم الواجهة لإظهار البطاقة غير المضببة
-          await renderView('reports');
-          showToast('تم التحقق بنجاح.');
+        closeModal('reportPinVerifyModal');
+        // إعادة رسم الواجهة لإظهار التغيير
+        await renderView('reports', state.currentView.params);
+        showToast('تم التحقق بنجاح.');
 
       } else {
           // PIN خاطئ
@@ -3776,6 +3774,7 @@ function getThemeColors() {
 
   // *** إصلاح: إضافة معالج حدث الإرسال لنافذة التحقق من PIN ***
   document.getElementById('reportPinVerifyForm').addEventListener('submit', async (e) => {
+      if (!e.target) return;
       e.preventDefault(); // منع إعادة تحميل الصفحة
       const reportId = document.getElementById('verifyPinReportId').value;
       const workerId = parseInt(document.getElementById('verifyPinWorkerId').value);
