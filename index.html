@@ -96,11 +96,11 @@
   }
   /* *** إضافة: تطبيق التصميم الاحترافي للبطاقات (مثل تطبيق المدير) *** */
   body:not(.dark) .card {
-    border: 1px solid rgba(2, 6, 23, 0.1);
+    border: 1px solid rgba(2, 6, 23, 0.15);
     box-shadow: 0 4px 12px rgba(2,6,23,.04);
   }
   body.dark .card {
-    border: 1px solid rgba(255, 255, 255, 0.1); /* إطار أبيض شفاف */
+    border: 1px solid rgba(255, 255, 255, 0.15); /* إطار أبيض شفاف */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* ظل داكن خفيف للعمق */
   }
 
@@ -213,6 +213,21 @@
     from { opacity: 1; transform: translateY(0); }
     to { opacity: 0; transform: translateY(15px); }
   }
+  /* *** إضافة: تنسيقات بطاقة التاريخ والإجراءات السريعة (من تطبيق المدير) *** */
+  .date-action-card {
+    color: white;
+    backdrop-filter: blur(10px);
+    /* الوضع الفاتح: أزرق-بنفسجي شفاف */
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  body.dark .date-action-card {
+    /* الوضع الداكن: رمادي-أردوازي شفاف */
+    background: linear-gradient(135deg, rgba(100, 116, 139, 0.7), rgba(71, 85, 105, 0.6));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+
   .nav-item.active i { animation: nav-bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
   @keyframes nav-bounce {
     0%   { transform: translateY(0); }
@@ -1507,9 +1522,14 @@ function getThemeColors() {
 
     return `
       <section class="hero" aria-label="لوحة التحكم">
-        <div>
-          <h2 style="margin:0;font-weight:800">أهلاً بك</h2>
-          <p style="margin:6px 0 0;opacity:.95">هذه هي لوحة التحكم الخاصة بك.</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h2 style="margin:0;font-weight:800">أهلاً بك</h2>
+              <p style="margin:6px 0 0;opacity:.95">هذه هي لوحة التحكم الخاصة بك.</p>
+            </div>
+            <button onclick="renderView(state.currentView.name, state.currentView.params)" class="btn icon-btn" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2);" title="تحديث البيانات (Actualiser)">
+                <i class="fas fa-sync-alt"></i>
+            </button>
         </div>
         <div class="kpis" style="margin-top:12px">
             <div class="kpi">
@@ -1518,6 +1538,24 @@ function getThemeColors() {
             </div>
         </div>
       </section>
+      <!-- *** إضافة: بطاقة التاريخ والإجراءات السريعة (من تطبيق المدير) *** -->
+      <div class="card date-action-card" style="flex-direction: row; justify-content: space-between; align-items: center; text-align: right; margin-top: 16px; margin-bottom: 16px; padding: 16px; cursor: default; transform: none;">
+        <div style="display:flex; align-items:center; gap: 12px;">
+            <div class="icon" style="width:48px; height:48px; background: rgba(255,255,255,0.1); font-size: 20px; margin-bottom: 0;"><i class="fas fa-calendar-day"></i></div>
+            <div>
+                <div style="font-weight: 800; font-size: 16px;">${new Date().toLocaleDateString('ar-DZ', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                <div style="font-size: 13px; opacity: 0.8;">تاريخ اليوم</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="openReportModal()" class="btn icon-btn" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);" title="إرسال بلاغ">
+                <i class="fas fa-flag"></i>
+            </button>
+            <button onclick="openPurchaseModal()" class="btn icon-btn" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);" title="إضافة شراء جديد">
+                <i class="fas fa-shopping-cart"></i>
+            </button>
+        </div>
+      </div>
       <div class="grid-cards">${mainGridHTML}</div>
     `;
   }
