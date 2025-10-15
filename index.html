@@ -2527,6 +2527,10 @@ function getThemeColors() {
             <p style="margin:0; line-height:1.7;">
                 <strong>My Decor Manager</strong> هو مساعدك الرقمي الشامل لإدارة أعمال الديكور والبناء. مصمم لتبسيط مهامك اليومية، من تتبع العمال والمشاريع إلى إدارة النفقات والموردين، كل ذلك في مكان واحد سهل الاستخدام.
             </p>
+            <!-- *** إضافة: عرض رقم إصدار التطبيق *** -->
+            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color); text-align: center; font-size: 13px; color: var(--muted);">
+                الإصدار 1.0.0
+            </div>
         </div>
     `;
 
@@ -3739,10 +3743,15 @@ function getThemeColors() {
                             } else {
                                 state.reports = [report, ...state.reports];
                             }
-                            needsRender = true;
-                            state.hasNewReportUpdates = true;
-                            updateNotificationDots(); 
-                            showToast(`تم تحديث حالة بلاغك.`);
+                            // *** إصلاح: إظهار الإشعار فقط إذا كان التغيير من المدير وليس من العامل نفسه ***
+                            // نقارن حالة البلاغ قبل وبعد التغيير
+                            const oldReport = state.reports.find(r => r.firestoreId === report.firestoreId);
+                            if (oldReport && oldReport.status !== report.status) {
+                                needsRender = true;
+                                state.hasNewReportUpdates = true;
+                                updateNotificationDots(); 
+                                showToast(`تم تحديث حالة بلاغك.`);
+                            }
                         } else if (change.type === 'removed') {
                             await db.reports.delete(report.firestoreId);
                             state.reports = state.reports.filter(r => r.firestoreId !== report.firestoreId);
