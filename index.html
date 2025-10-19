@@ -33,8 +33,17 @@
   html,body{height:100%}
   body{
     margin:0;font-family: 'Tajawal', sans-serif; background:var(--bg); color: var(--text-primary);
-    -webkit-font-smoothing:antialiased; display:flex;flex-direction:column;min-height:100vh;
+    -webkit-font-smoothing:antialiased; display:flex;flex-direction:column;min-height:100vh; transition: background-image 0.4s ease-in-out;
   }
+  /* *** إضافة: تطبيق الخلفية لتتناسب مع التطبيق الرئيسي *** */
+  body.home-view-active:not(.dark) {
+    /* *** إصلاح: تصحيح مسار الصورة ليشير إلى مجلد التطبيق الرئيسي *** */
+    background-image: url('../../projet one/images/menu.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+
   .splash{
     position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:linear-gradient(135deg,var(--primary),#065f46); color:white; z-index:60;
@@ -79,7 +88,20 @@
   .logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--primary),#0b8f81);display:flex;align-items:center;justify-content:center;color:white;font-weight:900}
   main{flex:1;overflow:auto;padding:16px;-webkit-overflow-scrolling:touch}
 
-  .hero{background:linear-gradient(90deg,var(--primary),#047857);color:white;padding:16px;border-radius:12px;display:flex;flex-direction:column;gap:10px}
+  /* *** تعديل: تطبيق تصميم الخلفية الضبابية لبطاقة الترحيب *** */
+  .hero {
+    position: relative;
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .hero::before { content: ''; position: absolute; inset: 0; background: url('images/admin.png') center/cover; filter: blur(4px) brightness(0.6); z-index: -1; }
+
   .kpis{display:flex;gap:10px;flex-wrap:wrap}
   .kpi{background:rgba(255,255,255,0.09);padding:10px;border-radius:10px;min-width:110px;text-align:center}
 
@@ -214,18 +236,23 @@
     to { opacity: 0; transform: translateY(15px); }
   }
   /* *** إضافة: تنسيقات بطاقة التاريخ والإجراءات السريعة (من تطبيق المدير) *** */
+  /* *** تعديل: تطبيق نفس تصميم الخلفية الضبابية لبطاقة التاريخ *** */
   .date-action-card {
+    position: relative; /* ضروري للعنصر ::before */
+    overflow: hidden;   /* لإخفاء أجزاء الفلتر الزائدة */
+    z-index: 1;
     color: white;
-    backdrop-filter: blur(10px);
-    /* الوضع الفاتح: أزرق-بنفسجي شفاف */
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8));
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: none; /* إزالة الإطار السابق */
   }
-  body.dark .date-action-card {
-    /* الوضع الداكن: رمادي-أردوازي شفاف */
-    background: linear-gradient(135deg, rgba(100, 116, 139, 0.7), rgba(71, 85, 105, 0.6));
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .date-action-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('images/admint.png') center/cover;
+    filter: blur(4px) brightness(0.6); /* تطبيق نفس الضبابية والإضاءة المنخفضة */
+    z-index: -1;
   }
+  body.dark .date-action-card { background: transparent; } /* إزالة الخلفية السابقة للوضع الداكن */
 
 
   .nav-item.active i { animation: nav-bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -307,7 +334,7 @@
   }
   .modal-content {
     position: relative; z-index: 101;
-    background: var(--card);
+    background: var(--card) !important;
     border-radius: 12px;
     width: 100%;
     max-width: 400px;
@@ -335,11 +362,11 @@
   .form-group label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 14px; }
   .form-group input {
     width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
-    background: var(--bg); color: var(--text-primary); font-size: 15px; box-sizing: border-box;
+    background: var(--bg) !important; color: var(--text-primary); font-size: 15px; box-sizing: border-box;
   }
   .form-group textarea {
     width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
-    background: var(--bg); color: var(--text-primary); font-size: 15px; box-sizing: border-box;
+    background: var(--bg) !important; color: var(--text-primary); font-size: 15px; box-sizing: border-box;
     font-family: 'Tajawal', sans-serif;
     resize: vertical;
     min-height: 80px;
@@ -1295,6 +1322,9 @@ function getThemeColors() {
 
     state.previousView = state.currentView;
     state.currentView = { name: viewName, params };
+
+    // *** إضافة: التحكم في ظهور الخلفية في الواجهة الرئيسية فقط ***
+    document.body.classList.toggle('home-view-active', viewName === 'home');
 
     const currentView = mainContent.querySelector('.view-container');
     const transitionDuration = 250;
