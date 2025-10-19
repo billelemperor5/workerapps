@@ -36,9 +36,10 @@
     -webkit-font-smoothing:antialiased; display:flex;flex-direction:column;min-height:100vh; transition: background-image 0.4s ease-in-out;
   }
   /* *** إضافة: تطبيق الخلفية لتتناسب مع التطبيق الرئيسي *** */
-  body.home-view-active:not(.dark) {
-    /* *** إصلاح: تصحيح مسار الصورة ليشير إلى مجلد التطبيق الرئيسي *** */
-    background-image: url('../../projet one/images/menu.png');
+  /* *** إصلاح: استخدام نفس المحددات الموجودة في التطبيق الرئيسي لتطبيق الخلفية *** */
+  body.home-view-active.main-modules-visible:not(.dark) {
+    /* *** تحديث: استخدام الخلفية الجديدة *** */
+    background-image: url('images/mina.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -1324,7 +1325,9 @@ function getThemeColors() {
     state.currentView = { name: viewName, params };
 
     // *** إضافة: التحكم في ظهور الخلفية في الواجهة الرئيسية فقط ***
-    document.body.classList.toggle('home-view-active', viewName === 'home');
+    const shouldShowBackground = viewName === 'home';
+    document.body.classList.toggle('home-view-active', shouldShowBackground);
+    document.body.classList.toggle('main-modules-visible', shouldShowBackground);
 
     const currentView = mainContent.querySelector('.view-container');
     const transitionDuration = 250;
